@@ -1032,7 +1032,7 @@ export default function Home() {
                             </div>
                             <div className="text-xs font-mono" style={{ color: '#333' }}>
                                 <div>© 2077 ALL RIGHTS RESERVED</div>
-                                <div className="mt-1">BUILD: v2.0.78-BETA</div>
+                                <div className="mt-1">BUILD: v2.0.79-FIX</div>
                             </div>
                         </footer>
 
