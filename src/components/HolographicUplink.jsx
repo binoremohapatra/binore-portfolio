@@ -15,6 +15,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { PerspectiveCamera, Stars, Instances, Instance, PerformanceMonitor, QuadraticBezierLine, OrbitControls, Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { geoEquirectangular, geoPath } from 'd3-geo';
+import gsap from 'gsap';
 import { useQuality } from '../context/QualityContext';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
@@ -236,15 +237,15 @@ function UplinkArc({ visitorLoc }) {
   );
 }
 
-// ─── Labeled Marker ─────────────────────────────────────────────────────────────
-function LocationMarker({ city, label, color = COLORS.cyan }) {
+// ─── Tactical Labeled Marker ──────────────────────────────────────────────────
+function LocationMarker({ city, label, color = COLORS.cyan, isNeuralLink = false }) {
   const localPos = useMemo(() => latLonToVec3(city.lat, city.lon, GLOBE_R + 0.05), [city]);
   const ringRef = useRef();
 
   useFrame(({ clock }) => {
     if (ringRef.current) {
       const pulse = (clock.elapsedTime % 1.5) / 1.5;
-      ringRef.current.scale.setScalar(1 + pulse * 5);
+      ringRef.current.scale.setScalar(1 + pulse * (isNeuralLink ? 8 : 5));
       ringRef.current.material.opacity = 0.8 * (1 - pulse);
     }
   });
@@ -252,28 +253,25 @@ function LocationMarker({ city, label, color = COLORS.cyan }) {
   return (
     <group position={localPos}>
       <mesh>
-        <sphereGeometry args={[0.03, 16, 16]} />
-        <meshBasicMaterial color={color} />
+        <sphereGeometry args={[isNeuralLink ? 0.05 : 0.03, 16, 16]} />
+        <meshBasicMaterial color={isNeuralLink ? COLORS.red : color} />
       </mesh>
       <mesh ref={ringRef} rotation={[-Math.PI / 2, 0, 0]}>
         <ringGeometry args={[0.04, 0.08, 32]} />
-        <meshBasicMaterial color={color} transparent side={THREE.DoubleSide} />
+        <meshBasicMaterial color={isNeuralLink ? COLORS.red : color} transparent side={THREE.DoubleSide} />
       </mesh>
-      <Html distanceFactor={10} position={[0, 0.2, 0]} center>
-        <div style={{
-          color: color,
-          fontFamily: "'Orbitron', sans-serif",
-          fontSize: '10px',
-          whiteSpace: 'nowrap',
-          background: 'rgba(0,0,0,0.85)',
-          padding: '4px 10px',
-          border: `1px solid ${color}`,
-          pointerEvents: 'none',
-          textTransform: 'uppercase',
-          letterSpacing: '0.15em',
-          boxShadow: `0 0 10px ${color}44`
-        }}>
-          {label}
+      <Html distanceFactor={10} position={[0, isNeuralLink ? 0.35 : 0.25, 0]} center>
+        <div 
+          className="cyber-hud-card" 
+          style={{
+            '--accent-color': isNeuralLink ? COLORS.red : color,
+          }}
+        >
+          <div className="cyber-hud-glitch-layer">{label}</div>
+          <div className="cyber-hud-content">{label}</div>
+          <div className="cyber-hud-corner-tl"></div>
+          <div className="cyber-hud-corner-br"></div>
+          <div className="cyber-hud-scanline"></div>
         </div>
       </Html>
     </group>
@@ -463,6 +461,7 @@ function RotatingGlobe({ progressRef, activeLoc, setActiveLoc, globeGroupRef, vi
         city={HOST_LOC} 
         label="DEVELOPER (DELHI)" 
         color={COLORS.yellow} 
+        isNeuralLink={isNeuralLinked}
       />
 
       {visitorLoc && (
@@ -470,6 +469,7 @@ function RotatingGlobe({ progressRef, activeLoc, setActiveLoc, globeGroupRef, vi
           city={visitorLoc} 
           label={`YOU (${visitorLoc.name.replace('_NODE', '')})`} 
           color={COLORS.magenta} 
+          isNeuralLink={isNeuralLinked}
         />
       )}
 
@@ -490,6 +490,33 @@ export default function HolographicUplink({ progressRef }) {
   const [uplinkDistance, setUplinkDistance] = useState(null);
 
   const [isManual, setIsManual] = useState(false);
+  const [isNeuralLinked, setIsNeuralLinked] = useState(false);
+  const controlsRef = useRef();
+
+  // Neural Link (Proximity Zoom) Logic
+  useEffect(() => {
+    if (uplinkDistance !== null && uplinkDistance <= 5 && !isNeuralLinked && controlsRef.current) {
+      setIsNeuralLinked(true);
+      const targetPos = latLonToVec3(HOST_LOC.lat, HOST_LOC.lon, GLOBE_R);
+      
+      // Cinematic Saturn-Descent
+      gsap.to(controlsRef.current.target, {
+        x: targetPos.x,
+        y: targetPos.y,
+        z: targetPos.z,
+        duration: 4,
+        ease: "power3.inOut"
+      });
+      
+      gsap.to(controlsRef.current.object.position, {
+        x: targetPos.x + 1.5,
+        y: targetPos.y + 3.5,
+        z: targetPos.z + 2.5,
+        duration: 5,
+        ease: "power3.inOut"
+      });
+    }
+  }, [uplinkDistance, isNeuralLinked]);
 
   // Visitor IP geolocation
   useEffect(() => {
@@ -515,7 +542,72 @@ export default function HolographicUplink({ progressRef }) {
     : config.starCount;
 
   return (
-    <div style={{ position: 'sticky', top: 0, left: 0, width: '100%', height: '100vh', overflow: 'hidden' }}>
+    <div style={{ position: 'sticky', top: 0, left: 0, width: '100%', height: '100vh', overflow: 'hidden', background: '#000' }}>
+      <style>{`
+        .cyber-hud-card {
+          position: relative;
+          color: var(--accent-color);
+          font-family: 'Share Tech Mono', monospace;
+          font-size: 11px;
+          white-space: nowrap;
+          background: rgba(0, 5, 10, 0.85);
+          backdrop-filter: blur(8px);
+          padding: 6px 14px;
+          border: 1px solid var(--accent-color);
+          clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%);
+          pointer-events: none;
+          text-transform: uppercase;
+          letter-spacing: 0.2em;
+          box-shadow: 0 0 15px rgba(0, 240, 255, 0.15);
+        }
+        .cyber-hud-content { position: relative; z-index: 2; }
+        .cyber-hud-glitch-layer {
+          position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+          opacity: 0; color: #ff003c; z-index: 1;
+          animation: cyber-glitch 4s infinite linear alternate-reverse;
+        }
+        @keyframes cyber-glitch {
+          0% { opacity: 0; transform: translate(0); }
+          2% { opacity: 0.8; transform: translate(-2px, 1px); }
+          4% { opacity: 0; transform: translate(0); }
+          50% { opacity: 0; }
+          52% { opacity: 0.5; transform: translate(2px, -1px); }
+          54% { opacity: 0; }
+        }
+        .cyber-hud-corner-tl {
+          position: absolute; top: -1px; left: -1px; width: 6px; height: 6px;
+          border-top: 2px solid var(--accent-color); border-left: 2px solid var(--accent-color);
+        }
+        .cyber-hud-corner-br {
+          position: absolute; bottom: 8px; right: 8px; width: 6px; height: 6px;
+          border-bottom: 2px solid var(--accent-color); border-right: 2px solid var(--accent-color);
+        }
+        .cyber-hud-scanline {
+          position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+          background: linear-gradient(0deg, transparent 50%, rgba(255,255,255,0.05) 50%);
+          background-size: 100% 4px; pointer-events: none;
+        }
+        .neural-link-alert {
+          position: absolute; top: 20%; left: 50%; transform: translateX(-50%);
+          z-index: 20; color: #ff003c; font-family: 'Orbitron', sans-serif;
+          text-align: center; pointer-events: none;
+          animation: alert-pulse 1s infinite alternate;
+        }
+        @keyframes alert-pulse {
+          from { opacity: 0.6; transform: translateX(-50%) scale(1); }
+          to { opacity: 1; transform: translateX(-50%) scale(1.05); }
+        }
+      `}</style>
+
+      {isNeuralLinked && (
+        <div className="neural-link-alert">
+          <div style={{ fontSize: '10px', letterSpacing: '0.5em', marginBottom: '8px' }}>[ NEURAL LINK ESTABLISHED ]</div>
+          <div style={{ fontSize: '32px', fontWeight: 900, textShadow: '0 0 15px #ff003c' }}>
+            {uplinkDistance?.toFixed(1)} KM TO TARGET
+          </div>
+        </div>
+      )}
+
       {/* HUD Overlay — Responsive scales */}
       <div style={{
         position: 'absolute',
@@ -558,6 +650,7 @@ export default function HolographicUplink({ progressRef }) {
         <CameraController progressRef={progressRef} target={activeLoc} globeGroupRef={globeGroupRef} isManual={isManual} />
         
         <OrbitControls 
+          ref={controlsRef}
           enablePan={false} 
           enableZoom={false} 
           autoRotate={false} 
