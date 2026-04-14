@@ -76,9 +76,10 @@ function useGlobeTexture() {
 
         if (!active) return;
 
+        const isMobileDevice = window.innerWidth < 768;
         const canvas = document.createElement('canvas');
-        canvas.width = 4096;
-        canvas.height = 2048;
+        canvas.width = isMobileDevice ? 1024 : 2048;
+        canvas.height = isMobileDevice ? 512 : 1024;
         const context = canvas.getContext('2d');
 
         // Oceans — Pitch Black
@@ -529,7 +530,7 @@ export default function HolographicUplink({ progressRef }) {
       </div>
 
       {/* Canvas with strict DPR cap for mobile perf */}
-      <Canvas dpr={[1, 1]} gl={{ powerPreference: "high-performance", antialias: false }}>
+      <Canvas dpr={[1, 1]} gl={{ powerPreference: "high-performance", precision: "mediump", antialias: false }}>
         <PerspectiveCamera makeDefault position={[0, 0, 9.5]} fov={45} near={0.1} far={1000} />
         <CameraController progressRef={progressRef} target={activeLoc} globeGroupRef={globeGroupRef} />
 

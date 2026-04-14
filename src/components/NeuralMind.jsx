@@ -405,7 +405,7 @@ function CyberBrain({ activeRegionId }) {
     box.getSize(size);
     const scale = 2.4 / Math.max(size.x, size.y, size.z);
     merged.scale(scale, scale, scale);
-    merged.computeVertexNormals();
+    // Removed computeVertexNormals() because it blocks main thread heavily on older CPUs
     return merged;
   }, [scene]);
 
@@ -643,7 +643,7 @@ export default function NeuralMind() {
           // Mobile: pull camera back (larger Z + wider FOV) so brain fits narrow viewport
           camera={{ position: [0, 1.2, isMobile ? 7.5 : 5.5], fov: isMobile ? 55 : 45 }}
           style={{ position: 'absolute', inset: 0, zIndex: 2 }}
-          gl={{ powerPreference: "high-performance", antialias: false, alpha: true, toneMapping: THREE.ACESFilmicToneMapping }}
+          gl={{ powerPreference: "high-performance", precision: "mediump", antialias: false, alpha: true, toneMapping: THREE.ACESFilmicToneMapping }}
         >
           <PerformanceMonitor 
              onDecline={() => setPerfDown(true)} 
