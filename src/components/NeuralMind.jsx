@@ -38,7 +38,6 @@ const REGIONS = {
   DATABASE: { id: 'DATABASE', label: 'DATABASE', value: 86, sub: 'PostgreSQL · MySQL', pos: [0, -1.0, -1.0], rot: [-Math.PI * 0.25, Math.PI, 0], color: T.neonRed },
   SYSTEMS: { id: 'SYSTEMS', label: 'SYSTEMS', value: 85, sub: 'Geospatial AI · Flutter', pos: [0, 1.4, 0.2], rot: [Math.PI * 0.35, 0, 0], color: T.neonRed },
   AI: { id: 'AI', label: 'AI / LLM', value: 82, sub: 'Ollama · Python', pos: [1.3, 0.3, 0.3], rot: [0, -Math.PI * 0.45, 0], color: T.neonRed },
-  MAVIS: { id: 'MAVIS', label: 'MAVIS AI', value: 98, sub: 'Local RAG · Tutor', pos: [-1.4, -0.6, 0.2], rot: [0, Math.PI * 0.45, 0], color: T.yellow, priority: true },
 };
 
 // ─── GLSL: Full Holographic Brain Shader (HIGH / MEDIUM tier) ─────────────────
