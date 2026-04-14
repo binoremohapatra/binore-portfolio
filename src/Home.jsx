@@ -488,7 +488,7 @@ export default function Home() {
                 ref={containerRef}
                 className="bg-black text-white hover:cursor-none !cursor-none home-arrival-flash overflow-x-hidden"
                 style={{
-                    scrollSnapType: 'y mandatory',
+                    scrollSnapType: isMobile ? 'none' : 'y mandatory',
                     height: '100vh',
                     overflowY: 'scroll',
                     scrollbarWidth: 'none',

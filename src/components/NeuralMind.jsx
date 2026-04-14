@@ -410,12 +410,18 @@ function FrameCapController({ frameCapMs }) {
 }
 
 // ─── Main Export ──────────────────────────────────────────────────────────────
-export default function NeuralMind() {
-  const { tier, config, onCanvasCreated, reportFPS } = useQuality();
-  const [activeRegion, setActiveRegion] = useState(null);
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-  const [perfDown, setPerfDown] = useState(false);
+  const [isLocked, setIsLocked] = useState(false);
+  const lastTap = useRef(0);
   const { playHover, playRot, playClick } = useCyberAudio();
+  
+  const handleInteractionToggle = useCallback((e) => {
+    const now = Date.now();
+    const DOUBLE_TAP_DELAY = 300;
+    if (now - lastTap.current < DOUBLE_TAP_DELAY) {
+      setIsLocked(prev => !prev);
+    }
+    lastTap.current = now;
+  }, []);
 
   // FPS buffer for watchdog
   const fpsBuffer = useRef([]);
@@ -457,12 +463,49 @@ export default function NeuralMind() {
           </div>
         </div>
 
+        {/* Global Interaction Hint */}
+        <div style={{
+          position: 'absolute',
+          top: isMobile ? '25%' : '20%',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 100,
+          pointerEvents: 'none',
+          fontFamily: "'Orbitron', sans-serif",
+          textAlign: 'center',
+          background: 'rgba(0, 0, 0, 0.7)',
+          padding: '8px 16px',
+          border: `1px solid ${isLocked ? T.cyan : T.yellow}`,
+          color: isLocked ? T.cyan : T.yellow,
+          fontSize: isMobile ? '9px' : '11px',
+          letterSpacing: '0.25em',
+          textShadow: `0 0 8px ${isLocked ? T.cyan : T.yellow}`,
+          clipPath: 'polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px)',
+          animation: isLocked ? 'none' : 'pulseBio 2s infinite',
+          opacity: 0.8
+        }}>
+          {isLocked 
+            ? `NEURAL_BRIDGE ACTIVE [ ${isMobile ? 'TAP' : 'CLICK'} x2 TO LOCK ]` 
+            : `NEURAL_ENGRAM_CORE [ ${isMobile ? 'TAP' : 'CLICK'} x2 TO ACCESS ]`
+          }
+        </div>
+
+        <style>{`
+          @keyframes pulseBio {
+            0% { opacity: 0.4; transform: translateX(-50%) scale(0.95); }
+            50% { opacity: 0.9; transform: translateX(-50%) scale(1.05); }
+            100% { opacity: 0.4; transform: translateX(-50%) scale(0.95); }
+          }
+        `}</style>
+
         {/* Interactive Nav buttons */}
         <div style={{
           position: 'absolute', bottom: isMobile ? 12 : 20,
           left: 0, right: 0, zIndex: 10,
           display: 'flex', justifyContent: 'center', flexWrap: 'wrap',
-          gap: isMobile ? '6px' : '10px', padding: '0 8px', pointerEvents: 'none',
+          gap: isMobile ? '6px' : '10px', padding: '0 8px', 
+          pointerEvents: isLocked ? 'auto' : 'none',
+          opacity: isLocked ? 1 : 0.2
         }}>
           {Object.values(REGIONS).map(r => {
             const isActive = activeRegion === r.id;
@@ -500,7 +543,15 @@ export default function NeuralMind() {
           dpr={config.dpr}
           frameloop={config.frameCapMs ? 'demand' : 'always'}
           camera={{ position: [0, 1.2, isMobile ? 7.5 : 5.5], fov: isMobile ? 55 : 45 }}
-          style={{ position: 'absolute', inset: 0, zIndex: 2, touchAction: 'pan-y' }}
+          onTouchStart={handleInteractionToggle}
+          onDoubleClick={handleInteractionToggle}
+          style={{ 
+            position: 'absolute', 
+            inset: 0, 
+            zIndex: 2, 
+            touchAction: isLocked ? 'none' : 'pan-y pinch-zoom',
+            pointerEvents: isLocked ? 'auto' : 'none'
+          }}
           gl={{
             powerPreference: 'high-performance',
             precision: config.precision,
