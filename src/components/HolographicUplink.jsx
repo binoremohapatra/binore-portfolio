@@ -411,7 +411,7 @@ function GlobeWireframe() {
 }
 
 // ─── Rotating Globe (tier-injected) ──────────────────────────────────────────
-function RotatingGlobe({ progressRef, activeLoc, setActiveLoc, globeGroupRef, visitorLoc, config }) {
+function RotatingGlobe({ progressRef, activeLoc, setActiveLoc, globeGroupRef, visitorLoc, config, isNeuralLinked }) {
   const texture = useGlobeTexture(config.globeTexSize);
   const sphereDetail = config.globeSegments;
   const initialYaw = (-90 - CITIES[0].lon) * (Math.PI / 180);
@@ -687,6 +687,7 @@ export default function HolographicUplink({ progressRef }) {
                 globeGroupRef={globeGroupRef}
                 visitorLoc={visitorLoc}
                 config={config}
+                isNeuralLinked={isNeuralLinked}
               />
             </group>
           </Suspense>
