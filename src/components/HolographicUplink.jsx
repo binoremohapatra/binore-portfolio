@@ -529,7 +529,7 @@ export default function HolographicUplink({ progressRef }) {
       </div>
 
       {/* Canvas with strict DPR cap for mobile perf */}
-      <Canvas dpr={[1, Math.min(window.devicePixelRatio, 1.5)]}>
+      <Canvas dpr={[1, 1]} gl={{ powerPreference: "high-performance", antialias: false }}>
         <PerspectiveCamera makeDefault position={[0, 0, 9.5]} fov={45} near={0.1} far={1000} />
         <CameraController progressRef={progressRef} target={activeLoc} globeGroupRef={globeGroupRef} />
 

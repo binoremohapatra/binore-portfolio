@@ -639,11 +639,11 @@ export default function NeuralMind() {
 
         {/* 3D Canvas with Adaptive Performance Safeguards */}
         <Canvas
-          dpr={[1, Math.min(window.devicePixelRatio, 1.5)]}
+          dpr={[1, 1]}
           // Mobile: pull camera back (larger Z + wider FOV) so brain fits narrow viewport
           camera={{ position: [0, 1.2, isMobile ? 7.5 : 5.5], fov: isMobile ? 55 : 45 }}
           style={{ position: 'absolute', inset: 0, zIndex: 2 }}
-          gl={{ antialias: !isMobile, alpha: true, toneMapping: THREE.ACESFilmicToneMapping }}
+          gl={{ powerPreference: "high-performance", antialias: false, alpha: true, toneMapping: THREE.ACESFilmicToneMapping }}
         >
           <PerformanceMonitor 
              onDecline={() => setPerfDown(true)} 

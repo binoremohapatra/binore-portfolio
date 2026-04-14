@@ -311,7 +311,7 @@ function PayloadReader({ id, onBack }) {
 
 // ─── ARASAKA CLASSIFIED MODAL ────────────────────────────────────────────────
 function ArasakaModal({ onClose }) {
-    const { playClick, playHover } = useCyberAudio();
+    const { playClick, playHover, stopClassifiedMusic } = useCyberAudio();
     const [activePayload, setActivePayload] = useState(null);
     
     return (
@@ -342,7 +342,7 @@ function ArasakaModal({ onClose }) {
                         </h2>
                     </div>
                     <button 
-                        onClick={() => { playClick(); onClose(); }}
+                        onClick={() => { playClick(); stopClassifiedMusic(); onClose(); }}
                         className="text-[#FF003C] border border-[#FF003C] px-4 py-2 hover:bg-[#FF003C] hover:text-black transition-colors font-mono text-xs"
                     >
                         [ DISCONNECT ]

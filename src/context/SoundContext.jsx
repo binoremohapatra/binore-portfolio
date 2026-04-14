@@ -16,6 +16,11 @@ const rotSfx = new Audio('/hover.mp3');
 // 2. The Rebel Path dynamic drop
 const rebelAudio = new Audio('/the-rebel-path.mp3');
 
+// 3. Classified theme
+const classifiedAudio = new Audio('/theme.mp3');
+classifiedAudio.loop = true;
+classifiedAudio.volume = 0.3;
+
 // Base Configurations
 bgmSfx.loop = true;
 bgmSfx.volume = 0.15;
@@ -26,6 +31,7 @@ rebelAudio.volume = 0.25;
 export const SoundProvider = ({ children }) => {
     const bgmStarted = useRef(false);
     const isRebelActive = useRef(false);
+    const isClassifiedActive = useRef(false);
 
     // Attempt to load from localStorage so choice persists across reloads
     const [isMuted, setIsMuted] = useState(() => {
@@ -46,10 +52,13 @@ export const SoundProvider = ({ children }) => {
         if (isMuted) {
             bgmSfx.pause();
             rebelAudio.pause();
+            classifiedAudio.pause();
         } else {
             // Only resume if the user actually officially started the BGM before toggling mute
             if (bgmStarted.current) {
-                if (isRebelActive.current) {
+                if (isClassifiedActive.current) {
+                    classifiedAudio.play().catch(e => console.warn("Failed to resume Classified BGM:", e));
+                } else if (isRebelActive.current) {
                     rebelAudio.play().catch(e => console.warn("Failed to resume Rebel BGM:", e));
                 } else {
                     bgmSfx.play().catch(e => console.warn("Failed to resume BGM:", e));
@@ -127,14 +136,23 @@ export const SoundProvider = ({ children }) => {
         bgmSfx.currentTime = 0;
         rebelAudio.currentTime = 0;
 
-        // Use theme.mp3 as the darker "Arasaka" theme
-        const classifiedAudio = new Audio('/theme.mp3');
-        classifiedAudio.loop = true;
-        classifiedAudio.volume = 0.3;
-        
+        isRebelActive.current = false;
+        isClassifiedActive.current = true;
         bgmStarted.current = true;
+
         if (!isMuted) {
             classifiedAudio.play().catch(e => console.warn("Classified Music trigger failed:", e));
+        }
+    };
+
+    const stopClassifiedMusic = () => {
+        classifiedAudio.pause();
+        classifiedAudio.currentTime = 0;
+        isClassifiedActive.current = false;
+        
+        // Resume rebel path since that's the default in Home
+        if (bgmStarted.current && !isMuted) {
+            triggerRebelPath();
         }
     };
 
@@ -150,7 +168,8 @@ export const SoundProvider = ({ children }) => {
             playRot,
             playBGM,
             triggerRebelPath,
-            triggerClassifiedMusic
+            triggerClassifiedMusic,
+            stopClassifiedMusic
         }}>
             {children}
         </SoundContext.Provider>
