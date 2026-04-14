@@ -12,8 +12,9 @@
 import React, { useRef, useMemo, useEffect, useState, useCallback } from 'react';
 import { Suspense } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { PerspectiveCamera, Stars, Instances, Instance, PerformanceMonitor, QuadraticBezierLine, OrbitControls, Html } from '@react-three/drei';
+import { PerspectiveCamera, Stars, Instances, Instance, PerformanceMonitor, QuadraticBezierLine, OrbitControls, Html, shaderMaterial } from '@react-three/drei';
 import * as THREE from 'three';
+import { extend, useFrame, useThree } from '@react-three/fiber';
 import { geoEquirectangular, geoPath } from 'd3-geo';
 import gsap from 'gsap';
 import { useQuality } from '../context/QualityContext';
@@ -25,11 +26,56 @@ const CITY_CELL = 0.15;
 const MAX_BUILDING_H = 1.0;
 
 const COLORS = {
-  yellow: '#FCEE0A',
-  cyan: '#00F0FF',
-  red: '#FF003C',
+  yellow: '#f3e600', // CP2077 Yellow
+  cyan: '#00f0ff',   // Kiroshi Cyan
+  red: '#ff2a42',    // Arasaka Red
   magenta: '#FF00FF',
 };
+
+// ─── Shaders ──────────────────────────────────────────────────────────────────
+const HolographicMaterial = shaderMaterial(
+  {
+    uTime: 0,
+    uColor: new THREE.Color(COLORS.cyan),
+    uOpacity: 1.0,
+    uTier: 3, // High by default
+  },
+  // Vertex Shader
+  `
+  varying vec2 vUv;
+  varying vec3 vPosition;
+  void main() {
+    vUv = uv;
+    vPosition = position;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+  `,
+  // Fragment Shader
+  `
+  uniform float uTime;
+  uniform vec3 uColor;
+  uniform float uOpacity;
+  uniform int uTier;
+  varying vec2 vUv;
+  varying vec3 vPosition;
+
+  void main() {
+    float scanline = sin(vPosition.y * 20.0 - uTime * 4.0) * 0.5 + 0.5;
+    float alpha = uOpacity * 0.4;
+    
+    // High tier gets the pulse and wireframe glow
+    if (uTier >= 3) {
+      alpha *= (0.6 + scanline * 0.4);
+      float glow = pow(1.0 - vUv.y, 2.0);
+      alpha += glow * 0.2;
+    }
+
+    gl_FragColor = vec4(uColor, alpha);
+  }
+  `
+);
+
+extend({ HolographicMaterial });
 
 const HOST_LOC = { id: 'host', lat: 28.6139, lon: 77.209, name: 'DELHI_CORE' };
 
@@ -237,15 +283,15 @@ function UplinkArc({ visitorLoc }) {
   );
 }
 
-// ─── Tactical Labeled Marker ──────────────────────────────────────────────────
-function LocationMarker({ city, label, color = COLORS.cyan, isNeuralLink = false }) {
+// ─── Labeled Marker ─────────────────────────────────────────────────────────────
+function LocationMarker({ city, label, color = COLORS.cyan }) {
   const localPos = useMemo(() => latLonToVec3(city.lat, city.lon, GLOBE_R + 0.05), [city]);
   const ringRef = useRef();
 
   useFrame(({ clock }) => {
     if (ringRef.current) {
       const pulse = (clock.elapsedTime % 1.5) / 1.5;
-      ringRef.current.scale.setScalar(1 + pulse * (isNeuralLink ? 8 : 5));
+      ringRef.current.scale.setScalar(1 + pulse * 5);
       ringRef.current.material.opacity = 0.8 * (1 - pulse);
     }
   });
@@ -253,25 +299,28 @@ function LocationMarker({ city, label, color = COLORS.cyan, isNeuralLink = false
   return (
     <group position={localPos}>
       <mesh>
-        <sphereGeometry args={[isNeuralLink ? 0.05 : 0.03, 16, 16]} />
-        <meshBasicMaterial color={isNeuralLink ? COLORS.red : color} />
+        <sphereGeometry args={[0.03, 16, 16]} />
+        <meshBasicMaterial color={color} />
       </mesh>
       <mesh ref={ringRef} rotation={[-Math.PI / 2, 0, 0]}>
         <ringGeometry args={[0.04, 0.08, 32]} />
-        <meshBasicMaterial color={isNeuralLink ? COLORS.red : color} transparent side={THREE.DoubleSide} />
+        <meshBasicMaterial color={color} transparent side={THREE.DoubleSide} />
       </mesh>
-      <Html distanceFactor={10} position={[0, isNeuralLink ? 0.35 : 0.25, 0]} center>
-        <div 
-          className="cyber-hud-card" 
-          style={{
-            '--accent-color': isNeuralLink ? COLORS.red : color,
-          }}
-        >
-          <div className="cyber-hud-glitch-layer">{label}</div>
-          <div className="cyber-hud-content">{label}</div>
-          <div className="cyber-hud-corner-tl"></div>
-          <div className="cyber-hud-corner-br"></div>
-          <div className="cyber-hud-scanline"></div>
+      <Html distanceFactor={10} position={[0, 0.2, 0]} center>
+        <div style={{
+          color: color,
+          fontFamily: "'Orbitron', sans-serif",
+          fontSize: '10px',
+          whiteSpace: 'nowrap',
+          background: 'rgba(0,0,0,0.85)',
+          padding: '4px 10px',
+          border: `1px solid ${color}`,
+          pointerEvents: 'none',
+          textTransform: 'uppercase',
+          letterSpacing: '0.15em',
+          boxShadow: `0 0 10px ${color}44`
+        }}>
+          {label}
         </div>
       </Html>
     </group>
@@ -349,9 +398,40 @@ function ActiveRing({ lat, lon }) {
   );
 }
 
-// ─── City Grid (tier-aware grid size, disabled on Low) ────────────────────────
-function CityGrid({ progressRef, lat, lon, gridSize }) {
+// ─── Tactical Assets ─────────────────────────────────────────────────────────
+
+function TacticalFloor({ opacity = 1 }) {
+  const gridTexture = useMemo(() => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 128;
+    canvas.height = 128;
+    const ctx = canvas.getContext('2d');
+    ctx.strokeStyle = COLORS.cyan;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(0, 0, 128, 128);
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+    tex.repeat.set(20, 20);
+    return tex;
+  }, []);
+
+  return (
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, 0]}>
+      <planeGeometry args={[10, 10]} />
+      <meshBasicMaterial map={gridTexture} transparent opacity={opacity * 0.2} depthWrite={false} />
+    </mesh>
+  );
+}
+
+function CityGrid({ progressRef, lat, lon, gridSize, tier, gridOpacity = 1 }) {
   const groupRef = useRef();
+  const materialRef = useRef();
+
+  useFrame(({ clock }) => {
+    if (materialRef.current) {
+      materialRef.current.uTime = clock.elapsedTime;
+    }
+  });
   const buildings = useMemo(() => {
     const arr = [];
     const offset = (gridSize * CITY_CELL) / 2;
@@ -391,7 +471,11 @@ function CityGrid({ progressRef, lat, lon, gridSize }) {
     <group ref={groupRef} position={localPos} quaternion={upQuat} visible={false}>
       <Instances limit={gridSize * gridSize} frustumCulled={false}>
         <boxGeometry />
-        <meshBasicMaterial color={COLORS.cyan} />
+        {tier >= 3 ? (
+          <holographicMaterial ref={materialRef} transparent uColor={new THREE.Color(COLORS.cyan)} uOpacity={gridOpacity} uTier={tier} />
+        ) : (
+          <meshBasicMaterial color={COLORS.cyan} transparent opacity={gridOpacity * 0.6} />
+        )}
         {buildings.map((b, i) => <Instance key={i} position={b.position} scale={b.scale} />)}
       </Instances>
     </group>
@@ -411,22 +495,31 @@ function GlobeWireframe() {
 }
 
 // ─── Rotating Globe (tier-injected) ──────────────────────────────────────────
-function RotatingGlobe({ progressRef, activeLoc, setActiveLoc, globeGroupRef, visitorLoc, config, isNeuralLinked }) {
+function RotatingGlobe({ 
+  progressRef, activeLoc, setActiveLoc, globeGroupRef, visitorLoc, config, 
+  isNeuralLinked, globeOpacity = 1, tacticalOpacity = 0 
+}) {
   const texture = useGlobeTexture(config.globeTexSize);
   const sphereDetail = config.globeSegments;
   const initialYaw = (-90 - CITIES[0].lon) * (Math.PI / 180);
 
+  const localHostPos = useMemo(() => latLonToVec3(HOST_LOC.lat, HOST_LOC.lon), []);
+  const upQuat = useMemo(() => {
+    const normal = localHostPos.clone().normalize();
+    return new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), normal);
+  }, [localHostPos]);
+
   useFrame((state) => {
     if (globeGroupRef.current) {
       const p = progressRef?.current ?? 0;
-      const rotSpeed = p < 0.45 ? 0.001 : 0.0002;
+      const rotSpeed = p < 0.45 ? (isNeuralLinked ? 0 : 0.001) : 0.0002;
       globeGroupRef.current.rotation.y += rotSpeed;
 
-      // Subtle mouse tilt (Parallax)
+      // Subtle mouse tilt
       const mouseX = state.mouse.x;
       const mouseY = state.mouse.y;
-      globeGroupRef.current.rotation.x = THREE.MathUtils.lerp(globeGroupRef.current.rotation.x, mouseY * 0.15, 0.05);
-      globeGroupRef.current.rotation.z = THREE.MathUtils.lerp(globeGroupRef.current.rotation.z, -mouseX * 0.1, 0.05);
+      globeGroupRef.current.rotation.x = THREE.MathUtils.lerp(globeGroupRef.current.rotation.x, mouseY * 0.1, 0.05);
+      globeGroupRef.current.rotation.z = THREE.MathUtils.lerp(globeGroupRef.current.rotation.z, -mouseX * 0.05, 0.05);
     }
   });
 
@@ -435,18 +528,29 @@ function RotatingGlobe({ progressRef, activeLoc, setActiveLoc, globeGroupRef, vi
       {texture && (
         <mesh>
           <sphereGeometry args={[GLOBE_R * 0.993, sphereDetail, sphereDetail]} />
-          <meshBasicMaterial map={texture} />
+          <meshBasicMaterial map={texture} transparent opacity={globeOpacity} />
         </mesh>
       )}
+
+      {/* Tactical Floor (Flat) */}
+      <group position={localHostPos} quaternion={upQuat}>
+        {isNeuralLinked && <TacticalFloor opacity={tacticalOpacity} />}
+      </group>
+
       <mesh>
         <sphereGeometry args={[GLOBE_R * 1.015, 64, 64]} />
-        <meshBasicMaterial color={COLORS.cyan} transparent opacity={0.04} side={THREE.BackSide} />
+        <meshBasicMaterial color={COLORS.cyan} transparent opacity={0.04 * globeOpacity} side={THREE.BackSide} />
       </mesh>
-      <GlobeWireframe />
+      
+      {globeOpacity > 0.1 && <GlobeWireframe />}
 
       {/* City grid — disabled on LOW tier */}
       {config.cityEnabled && (
-        <CityGrid progressRef={progressRef} lat={activeLoc.lat} lon={activeLoc.lon} gridSize={config.cityGrid} />
+        <CityGrid 
+          progressRef={progressRef} lat={activeLoc.lat} lon={activeLoc.lon} 
+          gridSize={config.cityGrid} tier={config.tier} 
+          gridOpacity={isNeuralLinked ? tacticalOpacity : 1} 
+        />
       )}
       <ActiveRing lat={activeLoc.lat} lon={activeLoc.lon} />
 
@@ -457,18 +561,18 @@ function RotatingGlobe({ progressRef, activeLoc, setActiveLoc, globeGroupRef, vi
       {visitorLoc && <HotspotPing city={visitorLoc} isActive color={COLORS.magenta} />}
 
       {/* Primary Labeled Pins */}
-      <LocationMarker 
-        city={HOST_LOC} 
-        label="DEVELOPER (DELHI)" 
-        color={COLORS.yellow} 
+      <LocationMarker
+        city={HOST_LOC}
+        label="DEVELOPER (DELHI)"
+        color={COLORS.yellow}
         isNeuralLink={isNeuralLinked}
       />
 
       {visitorLoc && (
-        <LocationMarker 
-          city={visitorLoc} 
-          label={`YOU (${visitorLoc.name.replace('_NODE', '')})`} 
-          color={COLORS.magenta} 
+        <LocationMarker
+          city={visitorLoc}
+          label={`YOU (${visitorLoc.name.replace('_NODE', '')})`}
+          color={COLORS.magenta}
           isNeuralLink={isNeuralLinked}
         />
       )}
@@ -491,7 +595,28 @@ export default function HolographicUplink({ progressRef }) {
 
   const [isManual, setIsManual] = useState(false);
   const [isNeuralLinked, setIsNeuralLinked] = useState(false);
+  const [linkingProgress, setLinkingProgress] = useState(0);
+  const [globeOpacity, setGlobeOpacity] = useState(1);
+  const [tacticalOpacity, setTacticalOpacity] = useState(0);
   const controlsRef = useRef();
+
+  // Reset logic (Scroll up or Zoom out)
+  useEffect(() => {
+    const handleScroll = () => {
+      if (progressRef?.current < 0.1 && isNeuralLinked) {
+        setIsNeuralLinked(false);
+        setIsManual(false);
+        setGlobeOpacity(1);
+        setTacticalOpacity(0);
+        setLinkingProgress(0);
+        if (controlsRef.current) {
+          gsap.to(controlsRef.current.object, { fov: 45, duration: 1.5 });
+        }
+      }
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [isNeuralLinked]);
 
   // Neural Link (Proximity Zoom) Logic
   useEffect(() => {
@@ -500,22 +625,54 @@ export default function HolographicUplink({ progressRef }) {
       setIsManual(true);
       const targetPos = latLonToVec3(HOST_LOC.lat, HOST_LOC.lon, GLOBE_R);
       
-      // Cinematic Saturn-Descent
-      gsap.to(controlsRef.current.target, {
+      const tl = gsap.timeline();
+      
+      // 1. Linking Counter (Decimal fix)
+      tl.to({ val: 0 }, {
+        val: 100,
+        duration: 4,
+        ease: "linear",
+        onUpdate: function() {
+          setLinkingProgress(Math.floor(this.targets()[0].val));
+        }
+      }, 0);
+
+      // 2. Camera Sat-Descent (Tactical Snap)
+      tl.to(controlsRef.current.target, {
         x: targetPos.x,
         y: targetPos.y,
         z: targetPos.z,
         duration: 4,
-        ease: "power3.inOut"
-      });
+        ease: "power4.inOut"
+      }, 0);
       
-      gsap.to(controlsRef.current.object.position, {
-        x: targetPos.x + 1.5,
-        y: targetPos.y + 3.5,
-        z: targetPos.z + 2.5,
+      tl.to(controlsRef.current.object.position, {
+        x: targetPos.x * 1.05, // Much closer street level
+        y: targetPos.y * 1.05,
+        z: targetPos.z * 1.05,
         duration: 5,
-        ease: "power3.inOut"
-      });
+        ease: "power4.inOut"
+      }, 0);
+
+      // 3. FOV Tactical Snap
+      tl.to(controlsRef.current.object, {
+        fov: 30,
+        duration: 5,
+        ease: "power4.inOut"
+      }, 0);
+
+      // 4. Globe cross-fade
+      tl.to({ op: 1 }, {
+        op: 0.0,
+        duration: 3,
+        onUpdate: function() { setGlobeOpacity(this.targets()[0].op); }
+      }, 1);
+
+      tl.to({ top: 0 }, {
+        top: 1,
+        duration: 3,
+        onUpdate: function() { setTacticalOpacity(this.targets()[0].top); }
+      }, 1);
     }
   }, [uplinkDistance, isNeuralLinked]);
 
@@ -543,72 +700,7 @@ export default function HolographicUplink({ progressRef }) {
     : config.starCount;
 
   return (
-    <div style={{ position: 'sticky', top: 0, left: 0, width: '100%', height: '100vh', overflow: 'hidden', background: '#000' }}>
-      <style>{`
-        .cyber-hud-card {
-          position: relative;
-          color: var(--accent-color);
-          font-family: 'Share Tech Mono', monospace;
-          font-size: 11px;
-          white-space: nowrap;
-          background: rgba(0, 5, 10, 0.85);
-          backdrop-filter: blur(8px);
-          padding: 6px 14px;
-          border: 1px solid var(--accent-color);
-          clip-path: polygon(0 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%);
-          pointer-events: none;
-          text-transform: uppercase;
-          letter-spacing: 0.2em;
-          box-shadow: 0 0 15px rgba(0, 240, 255, 0.15);
-        }
-        .cyber-hud-content { position: relative; z-index: 2; }
-        .cyber-hud-glitch-layer {
-          position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-          opacity: 0; color: #ff003c; z-index: 1;
-          animation: cyber-glitch 4s infinite linear alternate-reverse;
-        }
-        @keyframes cyber-glitch {
-          0% { opacity: 0; transform: translate(0); }
-          2% { opacity: 0.8; transform: translate(-2px, 1px); }
-          4% { opacity: 0; transform: translate(0); }
-          50% { opacity: 0; }
-          52% { opacity: 0.5; transform: translate(2px, -1px); }
-          54% { opacity: 0; }
-        }
-        .cyber-hud-corner-tl {
-          position: absolute; top: -1px; left: -1px; width: 6px; height: 6px;
-          border-top: 2px solid var(--accent-color); border-left: 2px solid var(--accent-color);
-        }
-        .cyber-hud-corner-br {
-          position: absolute; bottom: 8px; right: 8px; width: 6px; height: 6px;
-          border-bottom: 2px solid var(--accent-color); border-right: 2px solid var(--accent-color);
-        }
-        .cyber-hud-scanline {
-          position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-          background: linear-gradient(0deg, transparent 50%, rgba(255,255,255,0.05) 50%);
-          background-size: 100% 4px; pointer-events: none;
-        }
-        .neural-link-alert {
-          position: absolute; top: 20%; left: 50%; transform: translateX(-50%);
-          z-index: 20; color: #ff003c; font-family: 'Orbitron', sans-serif;
-          text-align: center; pointer-events: none;
-          animation: alert-pulse 1s infinite alternate;
-        }
-        @keyframes alert-pulse {
-          from { opacity: 0.6; transform: translateX(-50%) scale(1); }
-          to { opacity: 1; transform: translateX(-50%) scale(1.05); }
-        }
-      `}</style>
-
-      {isNeuralLinked && (
-        <div className="neural-link-alert">
-          <div style={{ fontSize: '10px', letterSpacing: '0.5em', marginBottom: '8px' }}>[ NEURAL LINK ESTABLISHED ]</div>
-          <div style={{ fontSize: '32px', fontWeight: 900, textShadow: '0 0 15px #ff003c' }}>
-            {uplinkDistance?.toFixed(1)} KM TO TARGET
-          </div>
-        </div>
-      )}
-
+    <div style={{ position: 'sticky', top: 0, left: 0, width: '100%', height: '100vh', overflow: 'hidden' }}>
       {/* HUD Overlay — Responsive scales */}
       <div style={{
         position: 'absolute',
@@ -626,12 +718,16 @@ export default function HolographicUplink({ progressRef }) {
         <div style={{ color: '#fff', fontSize: isMobile ? '9px' : '12px', opacity: 0.8, letterSpacing: '0.15em', marginTop: '8px' }}>
           LAT: {activeLoc.lat.toFixed(4)} // LON: {activeLoc.lon.toFixed(4)}
         </div>
-        {visitorLoc && (
-          <div style={{ marginTop: '12px', borderTop: '1px solid #FF00FF44', paddingTop: '10px' }}>
-            <div style={{ color: COLORS.magenta, fontSize: isMobile ? '7px' : '9px', letterSpacing: '0.3em', marginBottom: '4px' }}>INBOUND UPLINK DETECTED</div>
-            <div style={{ color: '#fff', fontSize: isMobile ? '10px' : '13px', fontWeight: 700, textShadow: `0 0 8px ${COLORS.magenta}` }}>{visitorLoc.name}</div>
-            <div style={{ color: COLORS.magenta, fontSize: isMobile ? '8px' : '10px', marginTop: '4px', opacity: 0.8 }}>
-              {uplinkDistance ? uplinkDistance.toLocaleString() + ' KM' : 'CALCULATING...'}
+        {isNeuralLinked && (
+          <div style={{ marginTop: '12px', borderTop: `1px solid ${COLORS.red}44`, paddingTop: '10px' }}>
+            <div style={{ color: COLORS.red, fontSize: isMobile ? '8px' : '10px', letterSpacing: '0.4em', marginBottom: '4px' }}>
+              [ NEURAL LINK: {linkingProgress}% ]
+            </div>
+            <div style={{ color: '#fff', fontSize: isMobile ? '12px' : '16px', fontWeight: 900, textShadow: `0 0 10px ${COLORS.red}` }}>
+              {linkingProgress === 100 ? 'LINK STABLE' : 'SYNCHRONIZING...'}
+            </div>
+            <div style={{ color: COLORS.cyan, fontSize: '10px', marginTop: '4px', opacity: 0.8 }}>
+              DIST: {uplinkDistance?.toFixed(2)} KM_TO_TARGET
             </div>
           </div>
         )}
@@ -649,14 +745,13 @@ export default function HolographicUplink({ progressRef }) {
       >
         <PerspectiveCamera makeDefault position={[0, 0, isMobile ? 12 : 9.5]} fov={isMobile ? 50 : 45} near={0.1} far={1000} />
         <CameraController progressRef={progressRef} target={activeLoc} globeGroupRef={globeGroupRef} isManual={isManual} />
-        
-        <OrbitControls 
-          ref={controlsRef}
-          enablePan={false} 
-          enableZoom={false} 
-          autoRotate={false} 
-          onStart={() => setIsManual(true)} 
-          makeDefault 
+
+        <OrbitControls
+          enablePan={false}
+          enableZoom={false}
+          autoRotate={false}
+          onStart={() => setIsManual(true)}
+          makeDefault
         />
 
         {/* FPS Watchdog — reports to quality engine */}
@@ -689,6 +784,8 @@ export default function HolographicUplink({ progressRef }) {
                 visitorLoc={visitorLoc}
                 config={config}
                 isNeuralLinked={isNeuralLinked}
+                globeOpacity={globeOpacity}
+                tacticalOpacity={tacticalOpacity}
               />
             </group>
           </Suspense>
