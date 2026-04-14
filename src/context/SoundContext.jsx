@@ -67,6 +67,34 @@ export const SoundProvider = ({ children }) => {
         }
     }, [isMuted]);
 
+    // ─── NEW: Page Visibility Logic ──────────────────────────────────────────
+    // Automatically pauses music when the tab is hidden (browser minimized / tab switched)
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.hidden) {
+                // Instantly pause everything
+                bgmSfx.pause();
+                rebelAudio.pause();
+                classifiedAudio.pause();
+            } else {
+                // Resume ONLY if the user hasn't muted and the music was already started
+                if (!isMuted && bgmStarted.current) {
+                    if (isClassifiedActive.current) {
+                        classifiedAudio.play().catch(e => console.warn("Visibility resume fail (Classified):", e));
+                    } else if (isRebelActive.current) {
+                        rebelAudio.play().catch(e => console.warn("Visibility resume fail (Rebel):", e));
+                    } else {
+                        bgmSfx.play().catch(e => console.warn("Visibility resume fail (BGM):", e));
+                    }
+                }
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }, [isMuted]); // Re-bind if mute state changes to ensure logic captures latest state
+
+
     const toggleMute = () => setIsMuted(prev => !prev);
 
     // Overlapping SFX Logic
