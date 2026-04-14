@@ -710,23 +710,8 @@ export default function Home() {
                     {/* Static Mode: WebGL failed — show parallax image fallback */}
                     {isStaticMode ? (
                         <StaticFallback sectionRef={globeSectionRef} />
-                    ) : !isMobile ? (
-                        <HolographicUplink smoothProgress={smoothProgress} progressRef={progressRef} />
                     ) : (
-                        <div className="w-full h-full flex flex-col items-center justify-center p-8 bg-[#020202] border-y border-[#FF003C55]">
-                            <div className="absolute top-10 left-10 text-[10px] text-[#FF003C] animate-pulse font-mono tracking-widest">[ SYSTEM_OPTIMIZED_FOR_MOBILE ]</div>
-                            <h2 className="text-4xl font-bold text-white italic uppercase tracking-tighter" style={{ fontFamily: "'Orbitron', sans-serif" }}>
-                                <span className="text-[#FF003C]">GEOSPATIAL</span> ANALYTICS
-                            </h2>
-                            <div className="mt-6 flex flex-col gap-4 max-w-md border-l-2 border-[#FF003C] pl-6 py-2">
-                                <p className="text-sm font-mono text-gray-400 leading-relaxed uppercase">
-                                    &gt; Global uplink operational. Mapping nodes in Delhi, Tokyo, London, and Night City.
-                                </p>
-                                <p className="text-xs font-mono text-[#555] tracking-widest">
-                                    LAT: 28.6139 // LON: 77.209
-                                </p>
-                            </div>
-                        </div>
+                        <HolographicUplink smoothProgress={smoothProgress} progressRef={progressRef} />
                     )}
 
                 </section>
@@ -900,7 +885,7 @@ export default function Home() {
                             </h2>
 
                             {/* Static Mode or Mobile → text fallback card */}
-                            {(isStaticMode || isMobile) ? (
+                            isStaticMode ? (
                                 <div className="p-8 bg-[#050505] border border-[#FF003C] flex flex-col gap-4" style={{ clipPath: 'polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px)' }}>
                                     <div className="text-[10px] text-[#FF003C] font-mono tracking-[0.2em] uppercase flex items-center gap-2">
                                         <span className="w-2 h-2 bg-[#FF003C] rounded-full animate-ping" />
