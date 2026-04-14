@@ -517,7 +517,6 @@ export default function NeuralMind() {
           <PerformanceMonitor
             onDecline={() => setPerfDown(true)}
             onIncline={() => setPerfDown(false)}
-            bounds={(fps) => fps < 50}
           >
             <Atmosphere isMobile={isMobile} perfDown={perfDown} tier={tier} config={config} />
             <Suspense fallback={<BrainLoader />}>

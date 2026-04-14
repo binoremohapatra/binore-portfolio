@@ -659,6 +659,7 @@ export default function HolographicUplink({ progressRef }) {
                 setActiveLoc={setActiveLoc}
                 globeGroupRef={globeGroupRef}
                 visitorLoc={visitorLoc}
+                config={config}
                 isMobile={isMobile}
               />
             </group>
