@@ -497,6 +497,7 @@ export default function HolographicUplink({ progressRef }) {
   useEffect(() => {
     if (uplinkDistance !== null && uplinkDistance <= 5 && !isNeuralLinked && controlsRef.current) {
       setIsNeuralLinked(true);
+      setIsManual(true);
       const targetPos = latLonToVec3(HOST_LOC.lat, HOST_LOC.lon, GLOBE_R);
       
       // Cinematic Saturn-Descent
