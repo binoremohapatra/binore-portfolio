@@ -132,8 +132,9 @@ function MatrixRain() {
 }
 
 // ─── Tethered Node (Html overlay — disabled on LOW tier) ─────────────────────
-function TetheredNode({ node, isActive }) {
+function TetheredNode({ node, isActive, isMobileSize }) {
   const [glitchLabel, setGlitchLabel] = useState(node.label);
+
   useEffect(() => {
     if (isActive) {
       const chars = '!<>-_\\\\/[]{}—=+*^?#_';
@@ -146,8 +147,6 @@ function TetheredNode({ node, isActive }) {
       return () => clearInterval(intv);
     } else { setGlitchLabel(node.label); }
   }, [isActive, node.label]);
-
-  const isMobileSize = window.innerWidth < 768;
   const isRight = node.pos[0] >= 0;
   const signX = isRight ? 1 : -1;
   const signY = node.pos[1] >= 0 ? 1 : -1;
@@ -195,28 +194,67 @@ function TetheredNode({ node, isActive }) {
         <sphereGeometry args={[0.015, 8, 8]} />
         <meshBasicMaterial color={nodeColor} />
       </mesh>
-      <Html position={ptCard} center style={{ pointerEvents: 'none' }} zIndexRange={[100, 0]}>
+      <Html position={ptCard} center style={{ pointerEvents: 'none', zIndex: isActive ? 100 : 1 }} zIndexRange={[100, 0]}>
         <div style={{
           display: 'flex', alignItems: 'center',
           flexDirection: isRight ? 'row' : 'row-reverse',
-          transition: 'all 0.5s cubic-bezier(0.16,1,0.3,1)',
+          transition: 'all 0.6s cubic-bezier(0.16,1,0.3,1)',
           opacity: isActive ? 1 : 0.5,
-          filter: isActive ? 'drop-shadow(0 0 10px #FF003C)' : 'none',
-          transform: isMobileSize ? 'scale(0.8)' : 'scale(1)',
+          filter: isActive ? `drop-shadow(0 0 20px ${T.cyan})` : 'none',
+          transform: isMobileSize 
+            ? `scale(${isActive ? 1.2 : 0.8})` 
+            : `scale(${isActive ? 1.5 : 1.0})`,
         }}>
-          <div style={{ background: '#000', border: `1px solid ${isActive ? T.cyan : T.neonRed}aa`, padding: '8px 12px', minWidth: isMobileSize ? '130px' : '160px', clipPath: 'polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 0 100%)', position: 'relative' }}>
-            {isActive && <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '2px', background: T.cyan, boxShadow: `0 0 10px ${T.cyan}` }} />}
-            <div style={{ fontFamily: '"Share Tech Mono", monospace', fontSize: '12px', color: isActive ? T.cyan : T.neonRed, letterSpacing: '0.15em', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{ width: '6px', height: '6px', background: 'currentColor', borderRadius: '50%' }} />
+          <div style={{ 
+            background: 'rgba(0,0,0,0.95)', 
+            border: `1px solid ${isActive ? T.cyan : T.neonRed}aa`, 
+            padding: isActive ? '12px 20px' : '8px 12px', 
+            minWidth: isMobileSize ? '130px' : (isActive ? '220px' : '160px'), 
+            clipPath: 'polygon(0 0, calc(100% - 15px) 0, 100% 15px, 100% 100%, 0 100%)', 
+            position: 'relative',
+            boxShadow: isActive ? `0 0 30px ${T.cyan}33` : 'none',
+            transition: 'all 0.4s ease'
+          }}>
+            {isActive && <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: T.cyan, boxShadow: `0 0 15px ${T.cyan}` }} />}
+            <div style={{ 
+              fontFamily: '"Share Tech Mono", monospace', 
+              fontSize: isActive ? '14px' : '12px', 
+              color: isActive ? T.cyan : T.neonRed, 
+              letterSpacing: '0.15em', 
+              fontWeight: 'bold', 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '8px' 
+            }}>
+              <div style={{ width: '6px', height: '6px', background: 'currentColor', borderRadius: '50%', boxShadow: isActive ? `0 0 10px currentColor` : 'none' }} />
               {glitchLabel}
             </div>
-            <div style={{ fontFamily: '"Space Mono", monospace', fontSize: '9px', color: '#888', marginTop: '4px', marginBottom: '8px' }}>[{node.sub}]</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ fontFamily: '"Orbitron", monospace', fontSize: '18px', color: T.yellow, fontWeight: '900', textShadow: `0 0 10px ${T.yellow}66` }}>{node.value}%</span>
-              <div style={{ flex: 1, height: '3px', background: '#222' }}>
-                <div style={{ width: `${node.value}%`, height: '100%', background: isActive ? T.cyan : T.neonRed, transition: 'width 1s ease-out' }} />
+            <div style={{ fontFamily: '"Space Mono", monospace', fontSize: isActive ? '11px' : '9px', color: '#aaa', marginTop: '4px', marginBottom: '8px' }}>[{node.sub}]</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+              <span style={{ 
+                fontFamily: '"Orbitron", monospace', 
+                fontSize: isActive ? '24px' : '18px', 
+                color: T.yellow, 
+                fontWeight: '900', 
+                textShadow: `0 0 12px ${T.yellow}88` 
+              }}>{node.value}%</span>
+              <div style={{ flex: 1, height: isActive ? '5px' : '3px', background: '#222' }}>
+                <div style={{ width: `${node.value}%`, height: '100%', background: isActive ? T.cyan : T.neonRed, transition: 'width 1.2s ease-out' }} />
               </div>
             </div>
+            {isActive && (
+              <div style={{ 
+                marginTop: '12px', 
+                paddingTop: '8px', 
+                borderTop: '1px solid #ffffff11', 
+                fontSize: '9px', 
+                color: T.cyan, 
+                fontFamily: '"Share Tech Mono"', 
+                letterSpacing: '0.1em' 
+              }}>
+                [ PRIORITY ACCESS GRANTED ] // DATA_STREAM_ACTIVE
+              </div>
+            )}
           </div>
         </div>
       </Html>
@@ -225,7 +263,7 @@ function TetheredNode({ node, isActive }) {
 }
 
 // ─── Brain Mesh — tier-adaptive materials ─────────────────────────────────────
-function CyberBrain({ activeRegionId, tier, config }) {
+function CyberBrain({ activeRegionId, tier, config, isMobile }) {
   // Draco flag = true → Drei auto-configures DRACOLoader from CDN
   const { scene } = useGLTF('/brain.glb', true);
   const groupRef = useRef();
@@ -311,10 +349,12 @@ function CyberBrain({ activeRegionId, tier, config }) {
         <meshBasicMaterial color={T.neonRed} transparent opacity={isLow ? 0.05 : 0.1} side={THREE.BackSide} blending={THREE.AdditiveBlending} depthWrite={false} />
       </mesh>
 
-      {/* Tethered HTML nodes — disabled on LOW (Html is expensive) */}
-      {config.brainTetheredNodes && Object.values(REGIONS).map(r => (
-        <TetheredNode key={r.id} node={r} isActive={activeRegionId === r.id} />
-      ))}
+      {/* Tethered HTML nodes — Only show all nodes during idle, focus single node when active */}
+      {config.brainTetheredNodes && Object.values(REGIONS)
+        .filter(r => !activeRegionId || r.id === activeRegionId)
+        .map(r => (
+          <TetheredNode key={r.id} node={r} isActive={activeRegionId === r.id} isMobileSize={isMobile} />
+        ))}
     </group>
   );
 }
@@ -481,7 +521,7 @@ export default function NeuralMind() {
           >
             <Atmosphere isMobile={isMobile} perfDown={perfDown} tier={tier} config={config} />
             <Suspense fallback={<BrainLoader />}>
-              <CyberBrain activeRegionId={activeRegion} tier={tier} config={config} />
+            <CyberBrain activeRegionId={activeRegion} tier={tier} config={config} isMobile={isMobile} />
             </Suspense>
           </PerformanceMonitor>
         </Canvas>
