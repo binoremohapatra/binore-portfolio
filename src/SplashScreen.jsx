@@ -41,7 +41,7 @@ export default function SplashScreen({
             // STEP A: Initial 'Neural Snap' Animation
             const isSmallScreen = window.innerWidth < 768;
             await titleControls.start({
-                letterSpacing: [isSmallScreen ? "40px" : "150px", "4px"],
+                letterSpacing: [isSmallScreen ? "30px" : "150px", isSmallScreen ? "0px" : "4px"],
                 scale: [1.5, 1],
                 opacity: [0, 1],
                 textShadow: base3DShadow,
@@ -167,7 +167,7 @@ export default function SplashScreen({
                 <motion.h1
                     className="relative z-10 font-black uppercase m-0 leading-[0.82] whitespace-pre-line text-center"
                     style={{
-                        fontSize: "clamp(2.2rem, 9vw, 10rem)",
+                        fontSize: isSmallScreen ? "clamp(1.8rem, 8.2vw, 4rem)" : "clamp(4.2rem, 15vw, 10rem)",
                         color: "#FCEE0A", // Bright Neon Yellow
                         textShadow: "-4px 4px 0px #00F0FF, 0 0 15px rgba(252,238,10,0.3)",
                         willChange: "transform, text-shadow, opacity, letter-spacing, skew",
@@ -175,7 +175,7 @@ export default function SplashScreen({
                         padding: "0 10px",
                         overflow: "visible"
                     }}
-                    initial={{ scale: 1.5, letterSpacing: window.innerWidth < 768 ? "-1px" : "150px", opacity: 0 }}
+                    initial={{ scale: 1.2, letterSpacing: isSmallScreen ? "10px" : "150px", opacity: 0 }}
                     animate={titleControls}
                 >
                     {mainText.split(' ').join('\n')}
