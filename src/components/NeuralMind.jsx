@@ -500,7 +500,7 @@ export default function NeuralMind() {
           dpr={config.dpr}
           frameloop={config.frameCapMs ? 'demand' : 'always'}
           camera={{ position: [0, 1.2, isMobile ? 7.5 : 5.5], fov: isMobile ? 55 : 45 }}
-          style={{ position: 'absolute', inset: 0, zIndex: 2 }}
+          style={{ position: 'absolute', inset: 0, zIndex: 2, touchAction: 'pan-y' }}
           gl={{
             powerPreference: 'high-performance',
             precision: config.precision,

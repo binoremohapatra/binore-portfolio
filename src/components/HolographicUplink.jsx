@@ -619,6 +619,7 @@ export default function HolographicUplink({ progressRef }) {
           antialias: config.antialias,
         }}
         onCreated={onCanvasCreated}
+        style={{ touchAction: 'pan-y' }}
       >
         <PerspectiveCamera makeDefault position={[0, 0, isMobile ? 12 : 9.5]} fov={isMobile ? 50 : 45} near={0.1} far={1000} />
         <CameraController progressRef={progressRef} target={activeLoc} globeGroupRef={globeGroupRef} isManual={isManual} />
