@@ -299,7 +299,18 @@ function CyberBrain({ activeRegionId, tier, config }) {
     }
   });
 
-  if (!brainGeo) return null;
+  if (!brainGeo) {
+    return (
+      <group ref={groupRef}>
+        <mesh material={primaryMat}>
+          <icosahedronGeometry args={[1.2, 1]} />
+        </mesh>
+        <mesh material={secondaryMat || primaryMat} wireframe>
+          <icosahedronGeometry args={[1.21, 1]} />
+        </mesh>
+      </group>
+    );
+  }
 
   return (
     <group ref={groupRef}>

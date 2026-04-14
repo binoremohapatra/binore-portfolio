@@ -158,6 +158,27 @@ function FrameCapController({ frameCapMs }) {
   return null;
 }
 
+// ─── Loader Fallback ──────────────────────────────────────────────────────────
+function UplinkLoader() {
+  return (
+    <Html center>
+      <div style={{
+        fontFamily: '"Share Tech Mono", monospace',
+        color: COLORS.cyan,
+        textAlign: 'center',
+        background: '#000',
+        padding: '10px',
+        border: `1px solid ${COLORS.cyan}`,
+        whiteSpace: 'nowrap',
+        textShadow: `0 0 8px ${COLORS.cyan}`
+      }}>
+        [ INITIALIZING GLOBAL UPLINK ]<br />
+        <span style={{ fontSize: '10px', opacity: 0.5 }}>SYNCHRONIZING GEO-DATA // STANDBY</span>
+      </div>
+    </Html>
+  );
+}
+
 // ─── Camera Controller ────────────────────────────────────────────────────────
 function CameraController({ progressRef, target, globeGroupRef }) {
   const { camera } = useThree();
@@ -383,10 +404,16 @@ function RotatingGlobe({ progressRef, activeLoc, setActiveLoc, globeGroupRef, vi
 
   return (
     <group ref={globeGroupRef} rotation={[0, initialYaw, 0]}>
-      {texture && (
+      {texture ? (
         <mesh>
           <sphereGeometry args={[GLOBE_R * 0.993, sphereDetail, sphereDetail]} />
           <meshBasicMaterial map={texture} />
+        </mesh>
+      ) : (
+        /* Fallback: Solid dark globe if GeoJSON/Texture fails */
+        <mesh>
+          <sphereGeometry args={[GLOBE_R * 0.993, sphereDetail, sphereDetail]} />
+          <meshBasicMaterial color="#050505" />
         </mesh>
       )}
       <mesh>
@@ -509,7 +536,7 @@ export default function HolographicUplink({ progressRef }) {
           )}
           <ambientLight intensity={1.0} />
 
-          <Suspense fallback={null}>
+          <Suspense fallback={<UplinkLoader />}>
             <group scale={isMobile ? 0.75 : 1}>
                <RotatingGlobe
                  progressRef={progressRef}
