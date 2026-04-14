@@ -29,6 +29,7 @@ export default function SplashScreen({
     const sparkControls = useAnimation();
     const screenControls = useAnimation();
     const flashControls = useAnimation();
+    const isSmallScreen = typeof window !== 'undefined' && window.innerWidth < 768;
 
     // The 'Snap' to 'Glitch' Sequence
     useEffect(() => {
@@ -39,7 +40,6 @@ export default function SplashScreen({
 
         const runSequence = async () => {
             // STEP A: Initial 'Neural Snap' Animation
-            const isSmallScreen = window.innerWidth < 768;
             await titleControls.start({
                 letterSpacing: [isSmallScreen ? "30px" : "150px", isSmallScreen ? "0px" : "4px"],
                 scale: [1.5, 1],
