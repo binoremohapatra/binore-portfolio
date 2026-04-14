@@ -11,10 +11,9 @@
 
 import React, { useRef, useMemo, useEffect, useState, useCallback } from 'react';
 import { Suspense } from 'react';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { Canvas, useFrame, useThree, extend } from '@react-three/fiber';
 import { PerspectiveCamera, Stars, Instances, Instance, PerformanceMonitor, QuadraticBezierLine, OrbitControls, Html, shaderMaterial } from '@react-three/drei';
 import * as THREE from 'three';
-import { extend, useFrame, useThree } from '@react-three/fiber';
 import { geoEquirectangular, geoPath } from 'd3-geo';
 import gsap from 'gsap';
 import { useQuality } from '../context/QualityContext';
