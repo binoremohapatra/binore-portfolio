@@ -12,7 +12,7 @@
 import React, { useRef, useMemo, useEffect, useState, useCallback } from 'react';
 import { Suspense } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { PerspectiveCamera, Stars, Instances, Instance, PerformanceMonitor, QuadraticBezierLine, OrbitControls } from '@react-three/drei';
+import { PerspectiveCamera, Stars, Instances, Instance, PerformanceMonitor, QuadraticBezierLine, OrbitControls, Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { geoEquirectangular, geoPath } from 'd3-geo';
 import { useQuality } from '../context/QualityContext';
@@ -236,7 +236,51 @@ function UplinkArc({ visitorLoc }) {
   );
 }
 
-// ─── Hotspot Ping ─────────────────────────────────────────────────────────────
+// ─── Labeled Marker ─────────────────────────────────────────────────────────────
+function LocationMarker({ city, label, color = COLORS.cyan }) {
+  const localPos = useMemo(() => latLonToVec3(city.lat, city.lon, GLOBE_R + 0.05), [city]);
+  const ringRef = useRef();
+
+  useFrame(({ clock }) => {
+    if (ringRef.current) {
+      const pulse = (clock.elapsedTime % 1.5) / 1.5;
+      ringRef.current.scale.setScalar(1 + pulse * 5);
+      ringRef.current.material.opacity = 0.8 * (1 - pulse);
+    }
+  });
+
+  return (
+    <group position={localPos}>
+      <mesh>
+        <sphereGeometry args={[0.03, 16, 16]} />
+        <meshBasicMaterial color={color} />
+      </mesh>
+      <mesh ref={ringRef} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[0.04, 0.08, 32]} />
+        <meshBasicMaterial color={color} transparent side={THREE.DoubleSide} />
+      </mesh>
+      <Html distanceFactor={10} position={[0, 0.2, 0]} center>
+        <div style={{
+          color: color,
+          fontFamily: "'Orbitron', sans-serif",
+          fontSize: '10px',
+          whiteSpace: 'nowrap',
+          background: 'rgba(0,0,0,0.85)',
+          padding: '4px 10px',
+          border: `1px solid ${color}`,
+          pointerEvents: 'none',
+          textTransform: 'uppercase',
+          letterSpacing: '0.15em',
+          boxShadow: `0 0 10px ${color}44`
+        }}>
+          {label}
+        </div>
+      </Html>
+    </group>
+  );
+}
+
+// ─── Hotspot Ping (Legacy/Original) ──────────────────────────────────────────
 function HotspotPing({ city, isActive, onClick, color }) {
   const localPos = useMemo(() => latLonToVec3(city.lat, city.lon, GLOBE_R + 0.02), [city]);
   const upQuat = useMemo(() => {
@@ -414,6 +458,21 @@ function RotatingGlobe({ progressRef, activeLoc, setActiveLoc, globeGroupRef, vi
 
       {visitorLoc && <HotspotPing city={visitorLoc} isActive color={COLORS.magenta} />}
 
+      {/* Primary Labeled Pins */}
+      <LocationMarker 
+        city={HOST_LOC} 
+        label="DEVELOPER (DELHI)" 
+        color={COLORS.yellow} 
+      />
+
+      {visitorLoc && (
+        <LocationMarker 
+          city={visitorLoc} 
+          label={`YOU (${visitorLoc.name.replace('_NODE', '')})`} 
+          color={COLORS.magenta} 
+        />
+      )}
+
       {/* Uplink Arc — disabled on LOW tier */}
       {config.uplinkArcEnabled && visitorLoc && <UplinkArc visitorLoc={visitorLoc} />}
     </group>
@@ -500,7 +559,7 @@ export default function HolographicUplink({ progressRef }) {
         
         <OrbitControls 
           enablePan={false} 
-          enableZoom={true} 
+          enableZoom={false} 
           autoRotate={false} 
           onStart={() => setIsManual(true)} 
           makeDefault 
