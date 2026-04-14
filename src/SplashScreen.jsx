@@ -165,15 +165,16 @@ export default function SplashScreen({
 
                 {/* Layer 5: Typography - Main Title with Relic Chromatic Glitch */}
                 <motion.h1
-                    className="relative z-10 font-black uppercase m-0 leading-[0.85] whitespace-pre-line text-center"
+                    className="relative z-10 font-black uppercase m-0 leading-[0.82] whitespace-pre-line text-center"
                     style={{
-                        fontSize: "clamp(4.2rem, 15vw, 10rem)",
+                        fontSize: "clamp(2.8rem, 9.5vw, 10rem)",
                         color: "#FCEE0A", // Bright Neon Yellow
-                        textShadow: "-5px 5px 0px #00F0FF, 0 0 15px rgba(252,238,10,0.3)",
+                        textShadow: "-4px 4px 0px #00F0FF, 0 0 15px rgba(252,238,10,0.3)",
                         willChange: "transform, text-shadow, opacity, letter-spacing, skew",
-                        maxWidth: "100vw"
+                        maxWidth: "100vw",
+                        padding: "0 10px"
                     }}
-                    initial={{ scale: 1.5, letterSpacing: window.innerWidth < 768 ? "10px" : "150px", opacity: 0 }}
+                    initial={{ scale: 1.5, letterSpacing: window.innerWidth < 768 ? "2px" : "150px", opacity: 0 }}
                     animate={titleControls}
                 >
                     {mainText.split(' ').join('\n')}
