@@ -496,7 +496,7 @@ function GlobeWireframe() {
 // ─── Rotating Globe (tier-injected) ──────────────────────────────────────────
 function RotatingGlobe({ 
   progressRef, activeLoc, setActiveLoc, globeGroupRef, visitorLoc, config, 
-  isNeuralLinked, globeOpacity = 1, tacticalOpacity = 0 
+  isNeuralLinked, globeOpacity = 1, tacticalOpacity = 0, uplinkDistance
 }) {
   const texture = useGlobeTexture(config.globeTexSize);
   const sphereDetail = config.globeSegments;
@@ -813,6 +813,7 @@ export default function HolographicUplink({ progressRef }) {
                 isNeuralLinked={isNeuralLinked}
                 globeOpacity={globeOpacity}
                 tacticalOpacity={tacticalOpacity}
+                uplinkDistance={uplinkDistance}
               />
             </group>
           </Suspense>
