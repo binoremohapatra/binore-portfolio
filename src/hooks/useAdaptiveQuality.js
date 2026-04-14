@@ -100,7 +100,7 @@ export const TIER_CONFIG = {
     starSaturation: 0,
     brainWireframe: false,
     brainLights: 0,
-    brainTetheredNodes: false,  // Html overlays removed — perf killer
+    brainTetheredNodes: true,  // Enabled so skills show on mobile
     useDraco: true,
     precision: 'lowp',
   },

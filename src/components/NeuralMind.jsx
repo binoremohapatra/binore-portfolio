@@ -148,12 +148,20 @@ function TetheredNode({ node, isActive }) {
     } else { setGlitchLabel(node.label); }
   }, [isActive, node.label]);
 
+  const isMobileSize = window.innerWidth < 768;
   const isRight = node.pos[0] >= 0;
   const signX = isRight ? 1 : -1;
   const signY = node.pos[1] >= 0 ? 1 : -1;
+
+  // Responsive tether distances
+  const elbowX = isMobileSize ? 0.25 : 0.4;
+  const cardX  = isMobileSize ? 0.6 : 0.9;
+  const tetherY = isMobileSize ? 0.2 : 0.3;
+
   const ptBrain = useMemo(() => new THREE.Vector3(0, 0, 0), []);
-  const ptElbow = useMemo(() => new THREE.Vector3(signX * 0.4, signY * 0.3, 0), [signX, signY]);
-  const ptCard = useMemo(() => new THREE.Vector3(signX * 0.9, signY * 0.3, 0), [signX, signY]);
+  const ptElbow = useMemo(() => new THREE.Vector3(signX * elbowX, signY * tetherY, 0), [signX, elbowX, signY, tetherY]);
+  const ptCard  = useMemo(() => new THREE.Vector3(signX * cardX, signY * tetherY, 0), [signX, cardX, signY, tetherY]);
+
   const lineGeo = useMemo(() => new THREE.BufferGeometry().setFromPoints([ptBrain, ptElbow, ptCard]), [ptBrain, ptElbow, ptCard]);
   const ringRot = useMemo(() => {
     const normal = new THREE.Vector3(...node.pos).normalize();
@@ -193,11 +201,11 @@ function TetheredNode({ node, isActive }) {
           display: 'flex', alignItems: 'center',
           flexDirection: isRight ? 'row' : 'row-reverse',
           transition: 'all 0.5s cubic-bezier(0.16,1,0.3,1)',
-          opacity: isActive ? 1 : 0.4,
+          opacity: isActive ? 1 : 0.5,
           filter: isActive ? 'drop-shadow(0 0 10px #FF003C)' : 'none',
-          transform: window.innerWidth < 768 ? 'scale(0.7)' : 'scale(1)',
+          transform: isMobileSize ? 'scale(0.8)' : 'scale(1)',
         }}>
-          <div style={{ background: '#000', border: `1px solid ${isActive ? T.cyan : T.neonRed}`, padding: '10px 14px', minWidth: '160px', clipPath: 'polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 0 100%)', position: 'relative' }}>
+          <div style={{ background: '#000', border: `1px solid ${isActive ? T.cyan : T.neonRed}aa`, padding: '8px 12px', minWidth: isMobileSize ? '130px' : '160px', clipPath: 'polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 0 100%)', position: 'relative' }}>
             {isActive && <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '2px', background: T.cyan, boxShadow: `0 0 10px ${T.cyan}` }} />}
             <div style={{ fontFamily: '"Share Tech Mono", monospace', fontSize: '12px', color: isActive ? T.cyan : T.neonRed, letterSpacing: '0.15em', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <div style={{ width: '6px', height: '6px', background: 'currentColor', borderRadius: '50%' }} />
