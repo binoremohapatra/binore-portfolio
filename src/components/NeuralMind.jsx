@@ -154,12 +154,12 @@ function TetheredNode({ node, isActive }) {
 
   // Responsive tether distances
   const elbowX = isMobileSize ? 0.25 : 0.4;
-  const cardX  = isMobileSize ? 0.6 : 0.9;
+  const cardX = isMobileSize ? 0.6 : 0.9;
   const tetherY = isMobileSize ? 0.2 : 0.3;
 
   const ptBrain = useMemo(() => new THREE.Vector3(0, 0, 0), []);
   const ptElbow = useMemo(() => new THREE.Vector3(signX * elbowX, signY * tetherY, 0), [signX, elbowX, signY, tetherY]);
-  const ptCard  = useMemo(() => new THREE.Vector3(signX * cardX, signY * tetherY, 0), [signX, cardX, signY, tetherY]);
+  const ptCard = useMemo(() => new THREE.Vector3(signX * cardX, signY * tetherY, 0), [signX, cardX, signY, tetherY]);
 
   const lineGeo = useMemo(() => new THREE.BufferGeometry().setFromPoints([ptBrain, ptElbow, ptCard]), [ptBrain, ptElbow, ptCard]);
   const ringRot = useMemo(() => {
@@ -299,18 +299,7 @@ function CyberBrain({ activeRegionId, tier, config }) {
     }
   });
 
-  if (!brainGeo) {
-    return (
-      <group ref={groupRef}>
-        <mesh material={primaryMat}>
-          <icosahedronGeometry args={[1.2, 1]} />
-        </mesh>
-        <mesh material={secondaryMat || primaryMat} wireframe>
-          <icosahedronGeometry args={[1.21, 1]} />
-        </mesh>
-      </group>
-    );
-  }
+  if (!brainGeo) return null;
 
   return (
     <group ref={groupRef}>

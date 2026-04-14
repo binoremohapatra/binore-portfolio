@@ -29,16 +29,10 @@ export const QUALITY_TIERS = {
  * @returns {'high'|'medium'|'low'}
  */
 function classifyTier(gpu) {
-  // Safe baseline for failed or pending detection
-  if (!gpu) return QUALITY_TIERS.LOW;
-  
-  // Explicitly handle tier 0 (low-end or blocked detection)
-  if (gpu.tier === 0) return QUALITY_TIERS.LOW;
-  
+  if (!gpu || gpu.tier === undefined || gpu.tier === null) return QUALITY_TIERS.LOW;
   if (gpu.isMobile) return QUALITY_TIERS.LOW;
-  if (gpu.tier >= 2 || gpu.isApple) return QUALITY_TIERS.HIGH; 
+  if (gpu.tier >= 2) return QUALITY_TIERS.HIGH;
   if (gpu.tier === 1) return QUALITY_TIERS.MEDIUM;
-  
   return QUALITY_TIERS.LOW;
 }
 
@@ -147,14 +141,15 @@ export function useAdaptiveQuality() {
 
   // Classify tier once GPU is detected
   useEffect(() => {
-    if (gpu) {
+    if (gpu && !isDetected) {
       const detected = classifyTier(gpu);
       setTier(detected);
       setGpuInfo(gpu);
       setIsDetected(true);
-      console.log(`[AdaptiveQuality] Hardware Calibration: Tier ${gpu.tier} -> ${detected.toUpperCase()}`);
+      console.log(`[AdaptiveQuality] GPU Detected: Tier ${gpu.tier} → Quality: ${detected.toUpperCase()}`);
+      console.log(`[AdaptiveQuality] GPU Info:`, gpu);
     }
-  }, [gpu]);
+  }, [gpu, isDetected]);
 
   // Manual static mode toggle
   const triggerStaticMode = useCallback(() => {
