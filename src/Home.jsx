@@ -25,7 +25,9 @@ import NeuralMind from './components/NeuralMind';
 import DataArchives from './components/DataArchives';
 import KonamiHandler from './components/KonamiHandler';
 import DataChipButton from './components/DataChipButton';
+import StaticFallback from './components/StaticFallback';
 import { useCyberAudio } from './context/SoundContext';
+import { useQuality } from './context/QualityContext';
 
 
 // ─────────────────────────────────────────────────────────
@@ -411,6 +413,7 @@ function ArasakaModal({ onClose }) {
 // ─────────────────────────────────────────────────────────
 export default function Home() {
     const { playHover, playClick, triggerRebelPath } = useCyberAudio();
+    const { isStaticMode, setStaticMode } = useQuality();
     const containerRef = useRef(null);
     const [hudReady, setHudReady] = useState(false);
     const [section, setSection] = useState(0); 
@@ -700,11 +703,14 @@ export default function Home() {
                 className="relative"
                 style={{
                     scrollSnapAlign: 'start',
-                    height: '100vh',         // lowered to 100vh for single scroll
+                    height: '100vh',
                     scrollSnapStop: 'always',
                 }}
             >
-                {!isMobile ? (
+                {/* Static Mode: WebGL failed — show parallax image fallback */}
+                {isStaticMode ? (
+                    <StaticFallback sectionRef={globeSectionRef} />
+                ) : !isMobile ? (
                     <HolographicUplink smoothProgress={smoothProgress} progressRef={progressRef} />
                 ) : (
                     <div className="w-full h-full flex flex-col items-center justify-center p-8 bg-[#020202] border-y border-[#FF003C55]">
@@ -893,13 +899,12 @@ export default function Home() {
                             <ScrambleText text="NEURAL_CORE" delay={0} />
                         </h2>
 
-                        {!isMobile ? (
-                            <NeuralMind />
-                        ) : (
+                        {/* Static Mode or Mobile → text fallback card */}
+                        {(isStaticMode || isMobile) ? (
                             <div className="p-8 bg-[#050505] border border-[#FF003C] flex flex-col gap-4" style={{ clipPath: 'polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px)' }}>
                                 <div className="text-[10px] text-[#FF003C] font-mono tracking-[0.2em] uppercase flex items-center gap-2">
                                     <span className="w-2 h-2 bg-[#FF003C] rounded-full animate-ping" />
-                                    [ MOBILE_CORTICAL_DUMP_ACTIVE ]
+                                    {isStaticMode ? '[ CORTICAL_STACK_OFFLINE // STATIC_MODE ]' : '[ MOBILE_CORTICAL_DUMP_ACTIVE ]'}
                                 </div>
                                 <div className="space-y-3 font-mono text-xs md:text-sm text-gray-400 leading-relaxed">
                                     <p>&gt; Backend Neural Load: 94% (Java/Spring Boot)</p>
@@ -907,7 +912,17 @@ export default function Home() {
                                     <p>&gt; AI Processing: 82% (Ollama/Python)</p>
                                     <p className="text-[#FCEE0A]">&gt; MAVIS AI Protocol: 100% Operational</p>
                                 </div>
+                                {isStaticMode && (
+                                    <button
+                                        onClick={() => setStaticMode(false)}
+                                        className="mt-2 text-[10px] font-mono text-[#00F0FF] border border-[#00F0FF] px-4 py-2 hover:bg-[#00F0FF] hover:text-black transition-colors uppercase tracking-widest"
+                                    >
+                                        [ RETRY_WEBGL ]
+                                    </button>
+                                )}
                             </div>
+                        ) : (
+                            <NeuralMind />
                         )}
                     </motion.div>
 

@@ -1,14 +1,25 @@
-import React, { useRef, useMemo, useEffect, useState } from 'react';
+/**
+ * HolographicUplink.jsx — Adaptive Quality Edition
+ * ─────────────────────────────────────────────────────────────────────────────
+ * Globe scene with full hardware-tier adaptive rendering.
+ *
+ * Tier Matrix:
+ *  HIGH   → 6000 stars, 128-seg globe, 2048px tex, full city grid, uplink arc, antialias
+ *  MEDIUM → 2000 stars, 64-seg globe, 1024px tex, 10x10 city grid, no antialias
+ *  LOW    → 0 stars, 32-seg globe, 512px tex, no city, no arc, 30fps cap, 0.75 DPR
+ */
+
+import React, { useRef, useMemo, useEffect, useState, useCallback } from 'react';
 import { Suspense } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { PerspectiveCamera, Stars, Instances, Instance, PerformanceMonitor, QuadraticBezierLine } from '@react-three/drei';
 import * as THREE from 'three';
 import { geoEquirectangular, geoPath } from 'd3-geo';
+import { useQuality } from '../context/QualityContext';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 const GLOBE_R = 2.4;
 const CITY_THRESHOLD = 0.72;
-const CITY_GRID = 20;
 const CITY_CELL = 0.15;
 const MAX_BUILDING_H = 1.0;
 
@@ -19,17 +30,16 @@ const COLORS = {
   magenta: '#FF00FF',
 };
 
-// Host base — always Delhi
 const HOST_LOC = { id: 'host', lat: 28.6139, lon: 77.209, name: 'DELHI_CORE' };
 
 const CITIES = [
   { id: 'delhi', lat: 28.6139, lon: 77.209, name: 'DELHI_SURFACE' },
   { id: 'tokyo', lat: 35.6762, lon: 139.6503, name: 'NEO_TOKYO' },
   { id: 'london', lat: 51.5074, lon: -0.1278, name: 'LONDON_GRID' },
-  { id: 'la', lat: 34.0522, lon: -118.2437, name: 'NIGHT_CITY' }
+  { id: 'la', lat: 34.0522, lon: -118.2437, name: 'NIGHT_CITY' },
 ];
 
-// ─── Haversine Distance Calculator ───────────────────────────────────────────
+// ─── Haversine ────────────────────────────────────────────────────────────────
 function haversineKm(lat1, lon1, lat2, lon2) {
   const R = 6371;
   const toRad = (d) => d * Math.PI / 180;
@@ -40,7 +50,6 @@ function haversineKm(lat1, lon1, lat2, lon2) {
   return Math.round(R * 2 * Math.asin(Math.sqrt(a)));
 }
 
-// ─── Spherical coordinate mapping matching Three.js Canvas UV layout ─────────
 function latLonToVec3(lat, lon, r = GLOBE_R) {
   const phi = lat * (Math.PI / 180);
   const theta = lon * (Math.PI / 180);
@@ -52,13 +61,12 @@ function latLonToVec3(lat, lon, r = GLOBE_R) {
   );
 }
 
-// ─── GeoJSON To Canvas Texture ───────────────────────────────────────────────
-function useGlobeTexture() {
+// ─── GeoJSON Texture (tier-aware resolution) ──────────────────────────────────
+function useGlobeTexture(texSize) {
   const [texture, setTexture] = useState(null);
 
   useEffect(() => {
     let active = true;
-
     async function loadMaps() {
       try {
         const worldRes = await fetch('/world-50m.geo.json');
@@ -67,90 +75,97 @@ function useGlobeTexture() {
         let indiaGeoJson = null;
         try {
           const indiaRes = await fetch('/india-official.geo.json');
-          if (indiaRes.ok) {
-            indiaGeoJson = await indiaRes.json();
-          }
-        } catch (e) {
-          console.warn('Official India Map not found, falling back to default.', e);
-        }
+          if (indiaRes.ok) indiaGeoJson = await indiaRes.json();
+        } catch (e) { /* optional */ }
 
         if (!active) return;
 
-        const isMobileDevice = window.innerWidth < 768;
         const canvas = document.createElement('canvas');
-        canvas.width = isMobileDevice ? 1024 : 2048;
-        canvas.height = isMobileDevice ? 512 : 1024;
+        canvas.width = texSize;
+        canvas.height = texSize / 2;
         const context = canvas.getContext('2d');
 
-        // Oceans — Pitch Black
         context.fillStyle = '#000000';
         context.fillRect(0, 0, canvas.width, canvas.height);
 
         const projection = geoEquirectangular()
           .translate([canvas.width / 2, canvas.height / 2])
           .scale(canvas.width / (2 * Math.PI));
-
         const path = geoPath().projection(projection).context(context);
 
-        // 1. Draw World Map
         context.strokeStyle = '#00F0FF';
-        context.lineWidth = 2.5;
+        context.lineWidth = texSize > 1024 ? 2.5 : 1.5;
         context.fillStyle = '#0a0a0a';
 
         worldGeoJson.features.forEach(feature => {
-          // If we have official India JSON, skip the world-map version of India
           if (indiaGeoJson) {
             const name = (feature.properties?.name || '').toLowerCase();
             const id = (feature.id || feature.properties?.id || '').toString().toUpperCase();
             if (name.includes('india') || id === 'IND' || id === '356') return;
           }
-
-          context.beginPath();
-          path(feature);
-          context.fill();
-          context.stroke();
+          context.beginPath(); path(feature); context.fill(); context.stroke();
         });
 
-        // 2. Draw Official India (only if loaded successfully)
         if (indiaGeoJson) {
           context.strokeStyle = '#00F0FF';
-          context.lineWidth = 4.0;
+          context.lineWidth = texSize > 1024 ? 4.0 : 2.0;
           context.fillStyle = '#0a0a0a';
-
           indiaGeoJson.features.forEach(feature => {
-            context.beginPath();
-            path(feature);
-            context.fill();
-            context.stroke();
+            context.beginPath(); path(feature); context.fill(); context.stroke();
           });
         }
 
         const tex = new THREE.CanvasTexture(canvas);
         tex.colorSpace = THREE.SRGBColorSpace;
-        tex.anisotropy = 8;
+        tex.anisotropy = texSize > 1024 ? 8 : 4;
         setTexture(tex);
       } catch (err) {
-        console.error('Critical Map Loading Error:', err);
+        console.error('Map Load Error:', err);
       }
     }
-
     loadMaps();
     return () => { active = false; };
-  }, []);
+  }, [texSize]);
 
   return texture;
+}
+
+// ─── FPS Watchdog (runs inside Canvas) ───────────────────────────────────────
+function FPSWatchdog({ reportFPS }) {
+  const fpsBuffer = useRef([]);
+  useFrame((_, delta) => {
+    const fps = 1 / delta;
+    fpsBuffer.current.push(fps);
+    if (fpsBuffer.current.length > 30) fpsBuffer.current.shift();
+    const avg = fpsBuffer.current.reduce((a, b) => a + b, 0) / fpsBuffer.current.length;
+    reportFPS(avg);
+  });
+  return null;
+}
+
+// ─── Frame Rate Cap (Low tier) ────────────────────────────────────────────────
+function FrameCapController({ frameCapMs }) {
+  const lastFrameTime = useRef(0);
+  useFrame((state) => {
+    if (!frameCapMs) return;
+    const now = performance.now();
+    if (now - lastFrameTime.current < frameCapMs) {
+      state.gl.setAnimationLoop(null); // pause
+    } else {
+      lastFrameTime.current = now;
+    }
+  });
+  return null;
 }
 
 // ─── Camera Controller ────────────────────────────────────────────────────────
 function CameraController({ progressRef, target, globeGroupRef }) {
   const { camera } = useThree();
   const lookTarget = useRef(new THREE.Vector3(0, 0, 0));
-
   const localPos = useMemo(() => latLonToVec3(target.lat, target.lon), [target]);
 
   useFrame(() => {
     const p = progressRef?.current ?? 0;
-
     let targetWorldPos = new THREE.Vector3();
     if (globeGroupRef.current) {
       targetWorldPos.copy(localPos);
@@ -158,57 +173,40 @@ function CameraController({ progressRef, target, globeGroupRef }) {
     } else {
       targetWorldPos.copy(localPos);
     }
-
     const normal = targetWorldPos.clone().normalize();
     const camMedium = normal.clone().multiplyScalar(GLOBE_R * 2.1);
     const camClose = normal.clone().multiplyScalar(GLOBE_R * 1.8);
     const sway = Math.sin(Date.now() * 0.0003) * 0.4;
     const camGlobal = new THREE.Vector3(sway, sway * 0.5, 9.5);
-
     let desiredPos = new THREE.Vector3();
-    if (p < 0.5) {
-      desiredPos.lerpVectors(camGlobal, camMedium, p * 2);
-    } else {
-      desiredPos.lerpVectors(camMedium, camClose, (p - 0.5) * 2);
-    }
-
+    if (p < 0.5) desiredPos.lerpVectors(camGlobal, camMedium, p * 2);
+    else desiredPos.lerpVectors(camMedium, camClose, (p - 0.5) * 2);
     camera.position.lerp(desiredPos, 0.08);
-
     let desiredLook = new THREE.Vector3();
-    if (p < 0.3) {
-      desiredLook.set(0, 0, 0);
-    } else {
-      desiredLook.copy(targetWorldPos);
-    }
-
+    if (p < 0.3) desiredLook.set(0, 0, 0);
+    else desiredLook.copy(targetWorldPos);
     lookTarget.current.lerp(desiredLook, 0.08);
     camera.lookAt(lookTarget.current);
   });
-
   return null;
 }
 
-// ─── Animated Parabolic Cyber-Arc ─────────────────────────────────────────────
+// ─── Uplink Arc (disabled on Low tier) ───────────────────────────────────────
 function UplinkArc({ visitorLoc }) {
   const packetRef = useRef();
   const tRef = useRef(0);
-
   const { start, mid, end } = useMemo(() => {
     const s = latLonToVec3(visitorLoc.lat, visitorLoc.lon);
     const e = latLonToVec3(HOST_LOC.lat, HOST_LOC.lon);
-    // Midpoint pushed outward from globe center to create parabolic arc above surface
     const midRaw = new THREE.Vector3().addVectors(s, e).multiplyScalar(0.5);
     const m = midRaw.clone().normalize().multiplyScalar(GLOBE_R * 1.65);
     return { start: s, mid: m, end: e };
   }, [visitorLoc]);
 
-  // Animate data packet along the quadratic bezier curve
   useFrame((_, delta) => {
     tRef.current = (tRef.current + delta * 0.35) % 1;
     const t = tRef.current;
-
     if (packetRef.current) {
-      // Quadratic Bezier formula: B(t) = (1-t)²P0 + 2(1-t)tP1 + t²P2
       const u = 1 - t;
       const pos = new THREE.Vector3()
         .addScaledVector(start, u * u)
@@ -220,48 +218,30 @@ function UplinkArc({ visitorLoc }) {
 
   return (
     <group>
-      {/* Glowing Arc Line */}
-      <QuadraticBezierLine
-        start={start}
-        mid={mid}
-        end={end}
-        color={COLORS.red}
-        lineWidth={2}
-        dashed
-        dashScale={15}
-        dashSize={0.5}
-        gapSize={0.3}
-      />
-      {/* Data Packet Sphere traveling along the arc */}
+      <QuadraticBezierLine start={start} mid={mid} end={end} color={COLORS.red} lineWidth={2} dashed dashScale={15} dashSize={0.5} gapSize={0.3} />
       <mesh ref={packetRef}>
         <sphereGeometry args={[0.03, 8, 8]} />
         <meshBasicMaterial color={COLORS.magenta} toneMapped={false} />
       </mesh>
-      {/* Glow halo around the packet */}
-      <mesh ref={null}>
-        {/* Static glow at visitor origin */}
-        <mesh position={start}>
-          <sphereGeometry args={[0.06, 8, 8]} />
-          <meshBasicMaterial color={COLORS.magenta} transparent opacity={0.25} toneMapped={false} />
-        </mesh>
-        {/* Static glow at host */}
-        <mesh position={end}>
-          <sphereGeometry args={[0.06, 8, 8]} />
-          <meshBasicMaterial color={COLORS.red} transparent opacity={0.25} toneMapped={false} />
-        </mesh>
+      <mesh position={start}>
+        <sphereGeometry args={[0.06, 8, 8]} />
+        <meshBasicMaterial color={COLORS.magenta} transparent opacity={0.25} toneMapped={false} />
+      </mesh>
+      <mesh position={end}>
+        <sphereGeometry args={[0.06, 8, 8]} />
+        <meshBasicMaterial color={COLORS.red} transparent opacity={0.25} toneMapped={false} />
       </mesh>
     </group>
   );
 }
 
-// ─── Pings & Rings ────────────────────────────────────────────────────────────
+// ─── Hotspot Ping ─────────────────────────────────────────────────────────────
 function HotspotPing({ city, isActive, onClick, color }) {
   const localPos = useMemo(() => latLonToVec3(city.lat, city.lon, GLOBE_R + 0.02), [city]);
   const upQuat = useMemo(() => {
     const normal = localPos.clone().normalize();
     return new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), normal);
   }, [localPos]);
-
   const dotRef = useRef();
   const ringRef = useRef();
   const dotColor = color || (isActive ? COLORS.yellow : COLORS.cyan);
@@ -285,9 +265,7 @@ function HotspotPing({ city, isActive, onClick, color }) {
   });
 
   return (
-    <group
-      position={localPos}
-      quaternion={upQuat}
+    <group position={localPos} quaternion={upQuat}
       onClick={(e) => { e.stopPropagation(); onClick && onClick(city); }}
       onPointerOver={() => document.body.style.cursor = 'pointer'}
       onPointerOut={() => document.body.style.cursor = 'auto'}
@@ -296,7 +274,6 @@ function HotspotPing({ city, isActive, onClick, color }) {
         <circleGeometry args={[isActive ? 0.04 : 0.025, 32]} />
         <meshBasicMaterial color={dotColor} transparent />
       </mesh>
-      {/* Pulsing ring — always visible on visitor node */}
       <mesh ref={ringRef}>
         <ringGeometry args={[0.03, 0.05, 32]} />
         <meshBasicMaterial color={dotColor} transparent side={THREE.DoubleSide} />
@@ -311,9 +288,7 @@ function ActiveRing({ lat, lon }) {
     const normal = localPos.clone().normalize();
     return new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), normal);
   }, [localPos]);
-
   const ringRef = useRef();
-
   useFrame(({ clock }) => {
     const t = (clock.elapsedTime % 1.8) / 1.8;
     if (ringRef.current) {
@@ -321,7 +296,6 @@ function ActiveRing({ lat, lon }) {
       ringRef.current.material.opacity = 0.9 * (1 - t);
     }
   });
-
   return (
     <group position={localPos} quaternion={upQuat}>
       <mesh ref={ringRef}>
@@ -332,27 +306,24 @@ function ActiveRing({ lat, lon }) {
   );
 }
 
-// ─── Procedural CityGrid ──────────────────────────────────────────────────────
-function CityGrid({ progressRef, lat, lon }) {
+// ─── City Grid (tier-aware grid size, disabled on Low) ────────────────────────
+function CityGrid({ progressRef, lat, lon, gridSize }) {
   const groupRef = useRef();
-
   const buildings = useMemo(() => {
     const arr = [];
-    const offset = (CITY_GRID * CITY_CELL) / 2;
-    for (let i = 0; i < CITY_GRID; i++) {
-      for (let j = 0; j < CITY_GRID; j++) {
+    const offset = (gridSize * CITY_CELL) / 2;
+    for (let i = 0; i < gridSize; i++) {
+      for (let j = 0; j < gridSize; j++) {
         const x = i * CITY_CELL - offset;
         const z = j * CITY_CELL - offset;
         const dist = Math.sqrt(x * x + z * z);
         const factor = Math.max(0.15, 1 - dist / offset);
         const h = Math.random() * MAX_BUILDING_H * factor;
-        if (h > 0.02) {
-          arr.push({ position: [x, h / 2, z], scale: [CITY_CELL * 0.75, h, CITY_CELL * 0.75] });
-        }
+        if (h > 0.02) arr.push({ position: [x, h / 2, z], scale: [CITY_CELL * 0.75, h, CITY_CELL * 0.75] });
       }
     }
     return arr;
-  }, []);
+  }, [gridSize]);
 
   const localPos = useMemo(() => latLonToVec3(lat, lon), [lat, lon]);
   const upQuat = useMemo(() => {
@@ -375,23 +346,19 @@ function CityGrid({ progressRef, lat, lon }) {
 
   return (
     <group ref={groupRef} position={localPos} quaternion={upQuat} visible={false}>
-      <Instances limit={500} frustumCulled={false}>
+      <Instances limit={gridSize * gridSize} frustumCulled={false}>
         <boxGeometry />
         <meshBasicMaterial color={COLORS.cyan} />
-        {buildings.map((b, i) => (
-          <Instance key={i} position={b.position} scale={b.scale} />
-        ))}
+        {buildings.map((b, i) => <Instance key={i} position={b.position} scale={b.scale} />)}
       </Instances>
     </group>
   );
 }
 
-// ─── Wireframe Globe Envelope ─────────────────────────────────────────────────
+// ─── Wireframe Globe ──────────────────────────────────────────────────────────
 function GlobeWireframe() {
   const ref = useRef();
-  useFrame(() => {
-    if (ref.current) ref.current.rotation.y += 0.003;
-  });
+  useFrame(() => { if (ref.current) ref.current.rotation.y += 0.003; });
   return (
     <mesh ref={ref}>
       <sphereGeometry args={[GLOBE_R * 1.005, 36, 36]} />
@@ -400,10 +367,10 @@ function GlobeWireframe() {
   );
 }
 
-// ─── Main Rotating Globe Group ────────────────────────────────────────────────
-function RotatingGlobe({ progressRef, activeLoc, setActiveLoc, globeGroupRef, isMobile, visitorLoc }) {
-  const texture = useGlobeTexture();
-  const sphereDetail = isMobile ? 64 : 128;
+// ─── Rotating Globe (tier-injected) ──────────────────────────────────────────
+function RotatingGlobe({ progressRef, activeLoc, setActiveLoc, globeGroupRef, visitorLoc, config }) {
+  const texture = useGlobeTexture(config.globeTexSize);
+  const sphereDetail = config.globeSegments;
   const initialYaw = (-90 - CITIES[0].lon) * (Math.PI / 180);
 
   useFrame(() => {
@@ -422,89 +389,67 @@ function RotatingGlobe({ progressRef, activeLoc, setActiveLoc, globeGroupRef, is
           <meshBasicMaterial map={texture} />
         </mesh>
       )}
-
-      {/* Atmospheric rim */}
       <mesh>
         <sphereGeometry args={[GLOBE_R * 1.015, 64, 64]} />
         <meshBasicMaterial color={COLORS.cyan} transparent opacity={0.04} side={THREE.BackSide} />
       </mesh>
-
       <GlobeWireframe />
 
-      <CityGrid progressRef={progressRef} lat={activeLoc.lat} lon={activeLoc.lon} />
+      {/* City grid — disabled on LOW tier */}
+      {config.cityEnabled && (
+        <CityGrid progressRef={progressRef} lat={activeLoc.lat} lon={activeLoc.lon} gridSize={config.cityGrid} />
+      )}
       <ActiveRing lat={activeLoc.lat} lon={activeLoc.lon} />
 
       {CITIES.map(city => (
-        <HotspotPing
-          key={city.id}
-          city={city}
-          isActive={city.id === activeLoc.id}
-          onClick={setActiveLoc}
-        />
+        <HotspotPing key={city.id} city={city} isActive={city.id === activeLoc.id} onClick={setActiveLoc} />
       ))}
 
-      {/* Visitor location — pulsing Magenta ping */}
-      {visitorLoc && (
-        <HotspotPing
-          city={visitorLoc}
-          isActive={true}
-          color={COLORS.magenta}
-        />
-      )}
+      {visitorLoc && <HotspotPing city={visitorLoc} isActive color={COLORS.magenta} />}
 
-      {/* Parabolic uplink arc from visitor to Delhi */}
-      {visitorLoc && <UplinkArc visitorLoc={visitorLoc} />}
+      {/* Uplink Arc — disabled on LOW tier */}
+      {config.uplinkArcEnabled && visitorLoc && <UplinkArc visitorLoc={visitorLoc} />}
     </group>
   );
 }
 
 // ─── Root Export ──────────────────────────────────────────────────────────────
 export default function HolographicUplink({ progressRef }) {
+  const { config, onCanvasCreated, reportFPS } = useQuality();
   const [activeLoc, setActiveLoc] = useState(CITIES[0]);
   const globeGroupRef = useRef();
   const [isMobile] = useState(() => window.innerWidth < 768);
   const [perfDown, setPerfDown] = useState(false);
-
-  // Visitor geolocation via IP
   const [visitorLoc, setVisitorLoc] = useState(null);
   const [uplinkDistance, setUplinkDistance] = useState(null);
 
+  // Visitor IP geolocation
   useEffect(() => {
     fetch('https://ipapi.co/json/')
       .then(res => res.json())
       .then(data => {
         if (data.latitude && data.longitude) {
-          const loc = {
+          setVisitorLoc({
             id: 'visitor',
             lat: data.latitude,
             lon: data.longitude,
             name: data.city ? `${data.city.toUpperCase()}_NODE` : 'UNKNOWN_NODE',
-          };
-          setVisitorLoc(loc);
-          // Calculate distance from visitor to Delhi host base
-          const km = haversineKm(data.latitude, data.longitude, HOST_LOC.lat, HOST_LOC.lon);
-          setUplinkDistance(km);
+          });
+          setUplinkDistance(haversineKm(data.latitude, data.longitude, HOST_LOC.lat, HOST_LOC.lon));
         }
       })
-      .catch(() => {
-        // Fail silently — visitor loc is optional enhancement
-        console.warn('Visitor geolocation unavailable.');
-      });
+      .catch(() => console.warn('Visitor geolocation unavailable.'));
   }, []);
+
+  // Merge PerformanceMonitor downgrades with tier config
+  const effectiveStarCount = perfDown
+    ? Math.min(config.starCount, 800)
+    : config.starCount;
 
   return (
     <div style={{ position: 'sticky', top: 0, left: 0, width: '100%', height: '100vh', overflow: 'hidden' }}>
-
-      {/* HUD Target Overlay */}
-      <div style={{
-        position: 'absolute',
-        bottom: '50px',
-        right: '50px',
-        zIndex: 10,
-        pointerEvents: 'none',
-        fontFamily: "'Orbitron', sans-serif",
-        textAlign: 'right'
-      }}>
+      {/* HUD Overlay */}
+      <div style={{ position: 'absolute', bottom: '50px', right: '50px', zIndex: 10, pointerEvents: 'none', fontFamily: "'Orbitron', sans-serif", textAlign: 'right' }}>
         <div style={{ color: COLORS.yellow, fontSize: '11px', letterSpacing: '0.35em', marginBottom: '6px' }}>UPLINK SECURED</div>
         <div style={{ color: COLORS.cyan, fontSize: '32px', fontWeight: 900, textShadow: `0 0 12px ${COLORS.cyan}` }}>
           {activeLoc.name}
@@ -512,16 +457,10 @@ export default function HolographicUplink({ progressRef }) {
         <div style={{ color: '#fff', fontSize: '12px', opacity: 0.8, letterSpacing: '0.15em', marginTop: '8px' }}>
           LAT: {activeLoc.lat.toFixed(4)} // LON: {activeLoc.lon.toFixed(4)}
         </div>
-
-        {/* Visitor uplink data */}
         {visitorLoc && (
           <div style={{ marginTop: '12px', borderTop: '1px solid #FF00FF44', paddingTop: '10px' }}>
-            <div style={{ color: COLORS.magenta, fontSize: '9px', letterSpacing: '0.3em', marginBottom: '4px' }}>
-              INBOUND UPLINK DETECTED
-            </div>
-            <div style={{ color: '#fff', fontSize: '13px', fontWeight: 700, textShadow: `0 0 8px ${COLORS.magenta}` }}>
-              {visitorLoc.name}
-            </div>
+            <div style={{ color: COLORS.magenta, fontSize: '9px', letterSpacing: '0.3em', marginBottom: '4px' }}>INBOUND UPLINK DETECTED</div>
+            <div style={{ color: '#fff', fontSize: '13px', fontWeight: 700, textShadow: `0 0 8px ${COLORS.magenta}` }}>{visitorLoc.name}</div>
             <div style={{ color: COLORS.magenta, fontSize: '10px', marginTop: '4px', opacity: 0.8 }}>
               UPLINK DISTANCE: {uplinkDistance ? uplinkDistance.toLocaleString() + ' KM' : 'CALCULATING...'}
             </div>
@@ -529,13 +468,37 @@ export default function HolographicUplink({ progressRef }) {
         )}
       </div>
 
-      {/* Canvas with strict DPR cap for mobile perf */}
-      <Canvas dpr={[1, 1]} gl={{ powerPreference: "high-performance", precision: "mediump", antialias: false }}>
+      {/* Canvas — tier-adaptive DPR, antialias, precision */}
+      <Canvas
+        dpr={config.dpr}
+        gl={{
+          powerPreference: 'high-performance',
+          precision: config.precision,
+          antialias: config.antialias,
+        }}
+        onCreated={onCanvasCreated}
+      >
         <PerspectiveCamera makeDefault position={[0, 0, 9.5]} fov={45} near={0.1} far={1000} />
         <CameraController progressRef={progressRef} target={activeLoc} globeGroupRef={globeGroupRef} />
 
+        {/* FPS Watchdog — reports to quality engine */}
+        <FPSWatchdog reportFPS={reportFPS} />
+
+        {/* 30fps cap for LOW tier */}
+        {config.frameCapMs && <FrameCapController frameCapMs={config.frameCapMs} />}
+
         <PerformanceMonitor onDecline={() => setPerfDown(true)} onIncline={() => setPerfDown(false)}>
-          <Stars radius={120} depth={60} count={isMobile || perfDown ? 800 : 6000} factor={4} saturation={0} fade speed={0.5} />
+          {effectiveStarCount > 0 && (
+            <Stars
+              radius={120}
+              depth={60}
+              count={effectiveStarCount}
+              factor={4}
+              saturation={config.starSaturation}
+              fade
+              speed={0.5}
+            />
+          )}
           <ambientLight intensity={1.0} />
 
           <Suspense fallback={null}>
@@ -544,8 +507,8 @@ export default function HolographicUplink({ progressRef }) {
               activeLoc={activeLoc}
               setActiveLoc={setActiveLoc}
               globeGroupRef={globeGroupRef}
-              isMobile={isMobile}
               visitorLoc={visitorLoc}
+              config={config}
             />
           </Suspense>
         </PerformanceMonitor>
