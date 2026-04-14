@@ -151,9 +151,9 @@ html, body {
   /* DataNode HTML card connector lines shrink automatically via scale(0.7) in JSX,
      but we also compress the min-width of cards so they do not bleed off-screen */
   .neural-data-card {
-    min-width: 110px !important;
-    font-size: 9px !important;
-    padding: 6px 8px !important;
+    min-width: 80px !important;
+    font-size: 8px !important;
+    padding: 4px 6px !important;
   }
 
   /* Glitch transition: disable heavy invert/contrast on mobile for perf */

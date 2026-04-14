@@ -153,9 +153,9 @@ function TetheredNode({ node, isActive, isMobileSize }) {
 
   // Responsive tether distances
   const elbowX = isMobileSize ? 0.25 : 0.4;
-  const cardScale = isMobileSize ? 0.5 : 1;
-  const cardX = isMobileSize ? 0.6 : 0.9;
-  const tetherY = isMobileSize ? 0.2 : 0.3;
+  const cardScale = isMobileSize ? 0.45 : 1;
+  const cardX = isMobileSize ? 0.5 : 0.9;
+  const tetherY = isMobileSize ? 0.15 : 0.3;
 
   const ptBrain = useMemo(() => new THREE.Vector3(0, 0, 0), []);
   const ptElbow = useMemo(() => new THREE.Vector3(signX * elbowX, signY * tetherY, 0), [signX, elbowX, signY, tetherY]);
