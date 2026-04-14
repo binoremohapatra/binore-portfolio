@@ -167,7 +167,7 @@ export default function SplashScreen({
                 <motion.h1
                     className="relative z-10 font-black uppercase m-0 leading-[0.82] whitespace-pre-line text-center"
                     style={{
-                        fontSize: isSmallScreen ? "clamp(2.8rem, 8vw, 5rem)" : "clamp(4.2rem, 15vw, 10rem)",
+                        fontSize: isSmallScreen ? "clamp(2.8rem, 11vw, 5rem)" : "clamp(4.2rem, 15vw, 10rem)",
                         color: "#FCEE0A", // Bright Neon Yellow
                         textShadow: "-4px 4px 0px #00F0FF, 0 0 15px rgba(252,238,10,0.3)",
                         willChange: "transform, text-shadow, opacity, letter-spacing, skew",
@@ -175,7 +175,7 @@ export default function SplashScreen({
                         padding: "0 10px",
                         overflow: "visible"
                     }}
-                    initial={{ scale: 1.2, letterSpacing: isSmallScreen ? "5px" : "150px", opacity: 0 }}
+                    initial={{ scale: 1.2, letterSpacing: isSmallScreen ? "10px" : "150px", opacity: 0 }}
                     animate={titleControls}
                 >
                     {mainText.split(' ').join('\n')}
