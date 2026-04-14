@@ -225,9 +225,94 @@ const PROJECTS = [
 // TECH_STACK data has been moved to TechRadar3D.jsx for the 3D Holographic Radar.
 
 
+const PAYLOAD_DATA = {
+    '01': {
+        title: 'How I Built a Geospatial AI Safety Engine in Semester 3',
+        body: 'The problem was clear: dynamic urban safety. Standard maps route for speed, not safety. I architected Delhi Kavach to fuse real-time crime data, AQI, and traffic. The biggest bottleneck was API rate limits on geospatial data, which forced me to build an aggressive caching layer. It taught me that real-world systems break differently than academic projects.'
+    },
+    '02': {
+        title: 'Why I Stopped Using Cloud AI and Built Everything Locally',
+        body: 'Cloud APIs are fast but they are rented. I wanted ownership. I shifted my entire stack to my custom PC rig, running Ollama with Llama 3 and Mistral. It gave me zero-latency inference for my systems and absolute data sovereignty. When you wire the hardware yourself, you realize how much power you actually have without relying on external servers.'
+    },
+    '03': {
+        title: 'Making a 3D Character Feel Alive – Maeve AI',
+        body: "Maeve AI is not a chatbot; it's an interface. Using React Three Fiber and VRM models, I mapped procedural animations to conversation states. If the local LLM generates a hesitant response, Maeve's bone structure shifts to reflect that. The transition from a flat screen to a spatial, persona-driven entity was the hardest architectural challenge I've faced."
+    }
+};
+
+function TypingBody({ text }) {
+    const [display, setDisplay] = useState('');
+    useEffect(() => {
+        let i = 0;
+        const interval = setInterval(() => {
+            setDisplay(text.slice(0, i));
+            i++;
+            if (i > text.length) clearInterval(interval);
+        }, 15);
+        return () => clearInterval(interval);
+    }, [text]);
+
+    return (
+        <div className="relative">
+            <p className="font-mono text-base md:text-lg leading-relaxed text-[#0F0] glow-green">
+                {display}<span className="inline-block w-2 h-4 bg-[#0F0] ml-1 animate-pulse" />
+            </p>
+            <style>{`
+                .glow-green { text-shadow: 0 0 5px rgba(0, 255, 0, 0.5); }
+            `}</style>
+        </div>
+    );
+}
+
+function PayloadReader({ id, onBack }) {
+    const data = PAYLOAD_DATA[id];
+    const { playClick, playHover } = useCyberAudio();
+
+    if (!data) return null;
+
+    return (
+        <motion.div 
+            initial={{ opacity: 0, x: 50 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="flex flex-col gap-8 pb-10"
+        >
+            <div className="sticky top-0 bg-[#050505] z-10 py-4 border-b border-[#222] flex justify-between items-center">
+                <button 
+                    onClick={() => { playClick(); onBack(); }}
+                    onMouseEnter={playHover}
+                    className="group flex items-center gap-2 text-xs font-mono text-[#444] hover:text-[#FF003C] transition-colors"
+                >
+                    <span>[ &lt;- RETURN_TO_INDEX ]</span>
+                </button>
+                <div className="text-[10px] font-mono text-gray-600 tracking-widest uppercase">
+                    FILE_REF: ARASAKA_INTEL_P{id}
+                </div>
+            </div>
+
+            <div className="max-w-[800px] mx-auto w-full">
+                <motion.h3 
+                    initial={{ opacity: 0 }} 
+                    animate={{ opacity: 1 }}
+                    className="text-3xl md:text-4xl font-black text-white uppercase italic tracking-tighter mb-8 leading-none"
+                    style={{ fontFamily: "'Orbitron', sans-serif" }}
+                >
+                    {data.title}
+                </motion.h3>
+
+                <TypingBody text={data.body} />
+            </div>
+
+            {/* CRT Scanline Local Overly */}
+            <div className="fixed inset-0 pointer-events-none z-20 opacity-10"
+                 style={{ background: 'linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06))', backgroundSize: '100% 2px, 3px 100%' }} />
+        </motion.div>
+    );
+}
+
 // ─── ARASAKA CLASSIFIED MODAL ────────────────────────────────────────────────
 function ArasakaModal({ onClose }) {
     const { playClick, playHover } = useCyberAudio();
+    const [activePayload, setActivePayload] = useState(null);
     
     return (
         <motion.div 
@@ -264,41 +349,54 @@ function ArasakaModal({ onClose }) {
                     </button>
                 </div>
 
-                <div className="flex flex-col gap-12">
-                    <div className="bg-[#FF003C]/10 p-6 border-l-4 border-[#FF003C]">
-                        <p className="font-mono text-sm text-[#FF003C] leading-relaxed">
-                            Welcome, Netrunner. You found the hidden node. The following files have been decrypted from the private Arasaka server cluster. Read carefully. Knowledge is a weapon.
-                        </p>
-                    </div>
+                <AnimatePresence mode="wait">
+                    {!activePayload ? (
+                        <motion.div 
+                            key="grid"
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -10 }}
+                            className="flex flex-col gap-12"
+                        >
+                            <div className="bg-[#FF003C]/10 p-6 border-l-4 border-[#FF003C]">
+                                <p className="font-mono text-sm text-[#FF003C] leading-relaxed">
+                                    Welcome, Netrunner. You found the hidden node. The following files have been decrypted from the private Arasaka server cluster. Read carefully. Knowledge is a weapon.
+                                </p>
+                            </div>
 
-                    {/* Blog Posts */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {[
-                            { id: '01', title: 'How I Built a Geospatial AI Safety Engine in Semester 3', desc: 'The full story of Delhi Kavach — the problem, the architecture, what broke, and what worked.' },
-                            { id: '02', title: 'Why I Stopped Using Cloud AI and Built Everything Locally', desc: 'How I run Llama 3 and Mistral on my custom PC, and why local AI matters for privacy.' },
-                            { id: '03', title: 'Making a 3D Character Feel Alive — Aura AI Dev Log', desc: 'Technical process of building a VRoid companion that reacts in real-time to conversation state.' },
-                        ].map((post, i) => (
-                            <motion.div 
-                                key={post.id}
-                                initial={{ opacity: 0, y: 10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: 0.5 + i * 0.2 }}
-                                onMouseEnter={playHover}
-                                className="group p-6 bg-black border border-[#222] hover:border-[#FCEE0A] transition-colors cursor-pointer"
-                                style={{ clipPath: 'polygon(0 0, 100% 0, 100% 70%, 80% 100%, 0 100%)' }}
-                            >
-                                <div className="text-[10px] text-[#FCEE0A] mb-3 font-mono tracking-widest">[ DECRYPTED_INTEL_{post.id} ]</div>
-                                <h4 className="text-lg font-bold text-white mb-4 leading-tight group-hover:text-[#FCEE0A]">
-                                    <ScrambleText text={post.title} delay={0.8 + i * 0.2} />
-                                </h4>
-                                <p className="text-xs text-gray-500 font-mono leading-relaxed truncate-2-lines">{post.desc}</p>
-                                <div className="mt-6 text-[10px] text-[#FF003C] font-mono group-hover:translate-x-2 transition-transform">
-                                    [ READ_FULL_PAYLOAD → ]
-                                </div>
-                            </motion.div>
-                        ))}
-                    </div>
-                </div>
+                            {/* Blog Posts */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {[
+                                    { id: '01', title: 'How I Built a Geospatial AI Safety Engine in Semester 3', desc: 'The full story of Delhi Kavach — the problem, the architecture, what broke, and what worked.' },
+                                    { id: '02', title: 'Why I Stopped Using Cloud AI and Built Everything Locally', desc: 'How I run Llama 3 and Mistral on my custom PC, and why local AI matters for privacy.' },
+                                    { id: '03', title: 'Making a 3D Character Feel Alive — Maeve AI Dev Log', desc: 'Technical process of building a VRoid companion that reacts in real-time to conversation state.' },
+                                ].map((post, i) => (
+                                    <motion.div 
+                                        key={post.id}
+                                        initial={{ opacity: 0, y: 10 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        transition={{ delay: 0.5 + i * 0.2 }}
+                                        onMouseEnter={playHover}
+                                        onClick={() => { playClick(); setActivePayload(post.id); }}
+                                        className="group p-6 bg-black border border-[#222] hover:border-[#FCEE0A] transition-colors cursor-pointer"
+                                        style={{ clipPath: 'polygon(0 0, 100% 0, 100% 70%, 80% 100%, 0 100%)' }}
+                                    >
+                                        <div className="text-[10px] text-[#FCEE0A] mb-3 font-mono tracking-widest">[ DECRYPTED_INTEL_{post.id} ]</div>
+                                        <h4 className="text-lg font-bold text-white mb-4 leading-tight group-hover:text-[#FCEE0A]">
+                                            <ScrambleText text={post.title} delay={0.8 + i * 0.2} />
+                                        </h4>
+                                        <p className="text-xs text-gray-500 font-mono leading-relaxed truncate-2-lines">{post.desc}</p>
+                                        <div className="mt-6 text-[10px] text-[#FF003C] font-mono group-hover:translate-x-2 transition-transform">
+                                            [ READ_FULL_PAYLOAD → ]
+                                        </div>
+                                    </motion.div>
+                                ))}
+                            </div>
+                        </motion.div>
+                    ) : (
+                        <PayloadReader key="reader" id={activePayload} onBack={() => setActivePayload(null)} />
+                    )}
+                </AnimatePresence>
 
                 <div className="mt-16 text-center text-[10px] font-mono text-[#444] tracking-[0.4em]">
                     ARASAKA_NETWORK_V4.2.0 // ESTABLISHED_ENCRYPTED_TUNNEL
