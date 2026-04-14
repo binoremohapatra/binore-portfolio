@@ -431,6 +431,18 @@ export default function Home() {
     // Spring-smooth the progress value
     const smoothProgress = useSpring(globeScroll, { stiffness: 60, damping: 22, mass: 1 });
 
+    // Mobile detect logic
+    const [isMobile, setIsMobile] = useState(false);
+
+    useEffect(() => {
+        const checkScreenSize = () => {
+            setIsMobile(window.innerWidth < 768);
+        };
+        checkScreenSize();
+        window.addEventListener('resize', checkScreenSize);
+        return () => window.removeEventListener('resize', checkScreenSize);
+    }, []);
+
     // Write spring value into ref for r3f to read each frame
     useEffect(() => {
         return smoothProgress.on('change', v => { progressRef.current = v; });
@@ -471,7 +483,7 @@ export default function Home() {
         <CustomCursor />
         <main
             ref={containerRef}
-            className="bg-black text-white hover:cursor-none !cursor-none home-arrival-flash"
+            className="bg-black text-white hover:cursor-none !cursor-none home-arrival-flash overflow-x-hidden"
             style={{
                 scrollSnapType: 'y mandatory',
                 height: '100vh',
@@ -530,7 +542,7 @@ export default function Home() {
             {/* ── SECTION 0: HERO ─────────────────────────────── */}
             <section
                 ref={heroRef}
-                className="relative flex flex-col justify-center h-screen w-full overflow-hidden"
+                className="relative flex flex-col justify-start md:justify-center min-h-screen w-full overflow-y-auto overflow-x-hidden pt-24 md:pt-10"
                 style={{ scrollSnapAlign: 'start' }}
             >
                 {/* Noise texture bg */}
@@ -558,10 +570,10 @@ export default function Home() {
                             variants={glitchContainer}
                             initial="hidden"
                             animate="show"
-                            className="relative z-10 flex flex-col md:flex-row items-center justify-center w-full h-full px-8 md:px-16 gap-10"
+                            className="relative z-10 flex flex-col md:flex-row items-center justify-start md:justify-center w-full min-h-full px-6 md:px-16 gap-8 md:gap-12 pt-10 pb-20 md:py-0"
                         >
                             {/* ── LEFT: Typography ── */}
-                            <div className="flex-1 flex flex-col items-start gap-5">
+                            <div className="flex-1 flex flex-col items-center text-center md:items-start md:text-left gap-4 md:gap-6 w-full">
                                 {/* Status tag */}
                                 <motion.div variants={glitchItem}
                                     className="flex items-center gap-2 text-xs tracking-[0.28em] uppercase"
@@ -577,26 +589,24 @@ export default function Home() {
                                 {/* Name */}
                                 <motion.h1
                                     variants={glitchItem}
-                                    className="leading-[0.9] uppercase m-0"
+                                    className="text-4xl sm:text-5xl md:text-7xl font-black uppercase leading-none m-0 break-words w-full"
                                     style={{
                                         fontFamily: "var(--font-cyberpunk, 'Orbitron', 'Tektur', sans-serif)",
-                                        fontWeight: 900,
-                                        fontSize: 'clamp(2.5rem, 6.5vw, 6rem)',
                                         color: COLORS.yellow,
-                                        textShadow: `5px 5px 0 ${COLORS.cyan}`,
+                                        textShadow: isMobile ? `3px 3px 0 ${COLORS.cyan}` : `5px 5px 0 ${COLORS.cyan}`,
                                         letterSpacing: '-0.02em',
                                     }}
                                 >
-                                    <ScrambleText text="BINORE&#10;MOHAPATRA" delay={0.2} />
+                                    <ScrambleText text={isMobile ? "BINORE\nMOHAPATRA" : "BINORE\nMOHAPATRA"} delay={0.2} />
                                 </motion.h1>
 
                                 {/* Role badge — chamfered */}
                                 <motion.div variants={glitchItem}>
                                     <div
-                                        className="inline-block text-black font-bold uppercase tracking-[0.22em] px-6 py-3 text-sm md:text-xl"
+                                        className="inline-block text-black font-bold uppercase tracking-[0.22em] px-4 md:px-6 py-2 md:py-3 text-[10px] sm:text-xs md:text-xl"
                                         style={{
                                             background: COLORS.yellow,
-                                            clipPath: 'polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px)',
+                                            clipPath: 'polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px)',
                                             fontFamily: "'Orbitron', sans-serif",
                                         }}
                                     >
@@ -605,7 +615,7 @@ export default function Home() {
                                 </motion.div>
 
                                 {/* Skills pills */}
-                                <motion.div variants={glitchItem} className="flex flex-wrap gap-2 mt-2">
+                                <motion.div variants={glitchItem} className="flex flex-wrap justify-center md:justify-start gap-2 mt-2">
                                     {['Spring Boot', 'React', 'Flutter', 'Python', 'Ollama', 'Geospatial AI'].map(s => (
                                         <span
                                             key={s}
@@ -618,7 +628,7 @@ export default function Home() {
                                 </motion.div>
 
                                 {/* CTA row */}
-                                <motion.div variants={glitchItem} className="flex gap-4 mt-4">
+                                <motion.div variants={glitchItem} className="flex flex-col sm:flex-row gap-4 mt-6 w-full max-w-sm md:max-w-none">
                                     <DataChipButton />
                                     <button
                                         data-interactive="true"
@@ -636,9 +646,9 @@ export default function Home() {
                             </div>
 
                             {/* ── RIGHT: Terminal Bio ── */}
-                            <motion.div variants={glitchItem} className="flex-shrink-0 w-full md:w-[450px]">
+                            <motion.div variants={glitchItem} className="flex-shrink-0 w-full md:w-[450px] max-w-lg lg:max-w-xl">
                                 <div
-                                    className="relative overflow-hidden p-6 md:p-8 text-sm font-mono leading-relaxed text-gray-300"
+                                    className="relative overflow-hidden p-6 md:p-8 text-xs sm:text-sm font-mono leading-relaxed text-gray-300"
                                     style={{
                                         background: '#07101A',
                                         border: `1px solid ${COLORS.red}`,
@@ -684,17 +694,34 @@ export default function Home() {
                 </motion.div>
             </section>
 
-            {/* ── SECTION 1: 3D GLOBE (tall scroll container) ── */}
+             {/* ── SECTION 1: 3D GLOBE (tall scroll container) ── */}
             <section
                 ref={globeSectionRef}
                 className="relative"
                 style={{
                     scrollSnapAlign: 'start',
-                    height: '400vh',         // tall section — internal scroll drives camera
+                    height: isMobile ? '100vh' : '400vh',         // Mobile: static height; PC: tall scroll container
                     scrollSnapStop: 'always',
                 }}
             >
-                <HolographicUplink smoothProgress={smoothProgress} progressRef={progressRef} />
+                {!isMobile ? (
+                    <HolographicUplink smoothProgress={smoothProgress} progressRef={progressRef} />
+                ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center p-8 bg-[#020202] border-y border-[#FF003C55]">
+                       <div className="absolute top-10 left-10 text-[10px] text-[#FF003C] animate-pulse font-mono tracking-widest">[ SYSTEM_OPTIMIZED_FOR_MOBILE ]</div>
+                       <h2 className="text-4xl font-bold text-white italic uppercase tracking-tighter" style={{ fontFamily: "'Orbitron', sans-serif" }}>
+                          <span className="text-[#FF003C]">GEOSPATIAL</span> ANALYTICS
+                       </h2>
+                       <div className="mt-6 flex flex-col gap-4 max-w-md border-l-2 border-[#FF003C] pl-6 py-2">
+                           <p className="text-sm font-mono text-gray-400 leading-relaxed uppercase">
+                              &gt; Global uplink operational. Mapping nodes in Delhi, Tokyo, London, and Night City.
+                           </p>
+                           <p className="text-xs font-mono text-[#555] tracking-widest">
+                              LAT: 28.6139 // LON: 77.209
+                           </p>
+                       </div>
+                    </div>
+                )}
 
             </section>
 
@@ -719,7 +746,7 @@ export default function Home() {
                     >
                         <div className="flex items-end gap-6 mb-4">
                             <h2
-                                className="text-5xl md:text-7xl font-bold uppercase leading-none"
+                                className="text-3xl sm:text-5xl md:text-7xl font-bold uppercase leading-none"
                                 style={{
                                     fontFamily: "'Orbitron', sans-serif",
                                     color: COLORS.yellow,
@@ -866,7 +893,22 @@ export default function Home() {
                             <ScrambleText text="NEURAL_CORE" delay={0} />
                         </h2>
 
-                        <NeuralMind />
+                        {!isMobile ? (
+                            <NeuralMind />
+                        ) : (
+                            <div className="p-8 bg-[#050505] border border-[#FF003C] flex flex-col gap-4" style={{ clipPath: 'polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px)' }}>
+                                <div className="text-[10px] text-[#FF003C] font-mono tracking-[0.2em] uppercase flex items-center gap-2">
+                                    <span className="w-2 h-2 bg-[#FF003C] rounded-full animate-ping" />
+                                    [ MOBILE_CORTICAL_DUMP_ACTIVE ]
+                                </div>
+                                <div className="space-y-3 font-mono text-xs md:text-sm text-gray-400 leading-relaxed">
+                                    <p>&gt; Backend Neural Load: 94% (Java/Spring Boot)</p>
+                                    <p>&gt; Frontend Neural Load: 88% (React/Next.js)</p>
+                                    <p>&gt; AI Processing: 82% (Ollama/Python)</p>
+                                    <p className="text-[#FCEE0A]">&gt; MAVIS AI Protocol: 100% Operational</p>
+                                </div>
+                            </div>
+                        )}
                     </motion.div>
 
 

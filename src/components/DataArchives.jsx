@@ -50,7 +50,7 @@ export default function DataArchives() {
           viewport={{ once: true }}
           className="flex flex-col gap-6"
         >
-          <h3 className="text-3xl font-black uppercase italic tracking-tighter text-[#FF003C]" style={{ fontFamily: "'Orbitron', sans-serif" }}>
+          <h3 className="text-xl sm:text-2xl md:text-3xl font-black uppercase italic tracking-tighter text-[#FF003C]" style={{ fontFamily: "'Orbitron', sans-serif" }}>
             [ ORIGIN_STORY ]
           </h3>
           <div className="space-y-4 text-gray-400 font-mono text-sm leading-relaxed border-l-2 border-[#FF003C] pl-6">
@@ -61,7 +61,7 @@ export default function DataArchives() {
           </div>
         </motion.div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {[
             { label: 'PROJECTS_SHIPPED', val: 7 },
             { label: 'AI_SYSTEMS', val: 5 },
@@ -77,7 +77,7 @@ export default function DataArchives() {
               className="p-6 bg-[#050505] border border-[#222] flex flex-col items-center justify-center text-center"
               style={{ clipPath: 'polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px)' }}
             >
-              <div className="text-4xl font-black text-[#FCEE0A]" style={{ fontFamily: "'Orbitron', sans-serif" }}>
+              <div className="text-2xl sm:text-3xl md:text-4xl font-black text-[#FCEE0A]" style={{ fontFamily: "'Orbitron', sans-serif" }}>
                 <Counter value={stat.val} suffix={stat.suffix} />
               </div>
               <div className="text-[10px] tracking-[0.3em] uppercase mt-2 text-gray-500">{stat.label}</div>
@@ -88,7 +88,7 @@ export default function DataArchives() {
 
       {/* ── Journey Timeline ── */}
       <div className="flex flex-col gap-12">
-        <h3 className="text-3xl font-black uppercase italic tracking-tighter text-[#00F0FF]" style={{ fontFamily: "'Orbitron', sans-serif" }}>
+        <h3 className="text-xl sm:text-2xl md:text-3xl font-black uppercase italic tracking-tighter text-[#00F0FF]" style={{ fontFamily: "'Orbitron', sans-serif" }}>
           [ STATUS_TRACE ]
         </h3>
         <div className="relative pl-10 border-l border-[#00F0FF44] space-y-12">
