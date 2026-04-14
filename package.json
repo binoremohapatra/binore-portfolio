@@ -14,7 +14,6 @@
     "@react-three/fiber": "^9.5.0",
     "@tailwindcss/vite": "^4.2.2",
     "d3-geo": "^3.1.1",
-    "framer": "^3.0.4",
     "framer-motion": "^12.38.0",
     "lucide-react": "^1.8.0",
     "react": "^19.2.4",
