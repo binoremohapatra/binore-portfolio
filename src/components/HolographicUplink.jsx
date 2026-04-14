@@ -558,15 +558,15 @@ export default function HolographicUplink({ progressRef }) {
   const [isLocked, setIsLocked] = useState(false);
   const lastTap = useRef(0);
 
-  const handleDoubleTap = useCallback((e) => {
-    if (!isMobile) return;
+  const handleInteractionToggle = useCallback((e) => {
+    // Detect double tap/click
     const now = Date.now();
     const DOUBLE_TAP_DELAY = 300;
     if (now - lastTap.current < DOUBLE_TAP_DELAY) {
       setIsLocked(prev => !prev);
     }
     lastTap.current = now;
-  }, [isMobile]);
+  }, []);
 
   const [isManual, setIsManual] = useState(false);
 
@@ -595,7 +595,8 @@ export default function HolographicUplink({ progressRef }) {
 
   return (
     <div 
-      onTouchStart={handleDoubleTap}
+      onTouchStart={handleInteractionToggle}
+      onDoubleClick={handleInteractionToggle}
       style={{ 
         position: 'sticky', 
         top: 0, 
@@ -603,34 +604,35 @@ export default function HolographicUplink({ progressRef }) {
         width: '100%', 
         height: '100vh', 
         overflow: 'hidden',
-        touchAction: isMobile && isLocked ? 'none' : 'auto'
+        touchAction: isLocked ? 'none' : 'pan-y pinch-zoom'
       }}
     >
-      {/* Mobile Interaction Hint */}
-      {isMobile && (
-        <div style={{
-          position: 'absolute',
-          top: '20%',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          zIndex: 100,
-          pointerEvents: 'none',
-          fontFamily: "'Orbitron', sans-serif",
-          textAlign: 'center',
-          background: 'rgba(0, 0, 0, 0.7)',
-          padding: '8px 16px',
-          border: `1px solid ${isLocked ? COLORS.cyan : COLORS.yellow}`,
-          color: isLocked ? COLORS.cyan : COLORS.yellow,
-          fontSize: '10px',
-          letterSpacing: '0.2em',
-          textShadow: `0 0 8px ${isLocked ? COLORS.cyan : COLORS.yellow}`,
-          clipPath: 'polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px)',
-          animation: isLocked ? 'none' : 'pulse 2s infinite',
-          opacity: 0.8
-        }}>
-          {isLocked ? 'ROTATION ACTIVE [ TAP x2 TO UNLOCK SCROLL ]' : 'GLOBAL MAP [ TAP x2 TO ROTATE ]'}
-        </div>
-      )}
+      {/* Universal Interaction Hint */}
+      <div style={{
+        position: 'absolute',
+        top: isMobile ? '20%' : '15%',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        zIndex: 100,
+        pointerEvents: 'none',
+        fontFamily: "'Orbitron', sans-serif",
+        textAlign: 'center',
+        background: 'rgba(0, 0, 0, 0.7)',
+        padding: '8px 16px',
+        border: `1px solid ${isLocked ? COLORS.cyan : COLORS.yellow}`,
+        color: isLocked ? COLORS.cyan : COLORS.yellow,
+        fontSize: isMobile ? '9px' : '11px',
+        letterSpacing: '0.25em',
+        textShadow: `0 0 8px ${isLocked ? COLORS.cyan : COLORS.yellow}`,
+        clipPath: 'polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px)',
+        animation: isLocked ? 'none' : 'pulse 2s infinite',
+        opacity: 0.8
+      }}>
+        {isLocked 
+          ? `TACTICAL_LINK ACTIVE [ ${isMobile ? 'TAP' : 'CLICK'} x2 TO LOCK ]` 
+          : `GLOBAL_MAP_STATION [ ${isMobile ? 'TAP' : 'CLICK'} x2 TO ENGAGE ]`
+        }
+      </div>
 
       {/* Animation for hint */}
       <style>{`
@@ -678,15 +680,15 @@ export default function HolographicUplink({ progressRef }) {
         }}
         onCreated={onCanvasCreated}
         style={{ 
-          touchAction: isMobile && isLocked ? 'none' : 'auto',
-          pointerEvents: isMobile && !isLocked ? 'none' : 'auto'
+          touchAction: isLocked ? 'none' : 'pan-y pinch-zoom',
+          pointerEvents: isLocked ? 'auto' : 'none'
         }}
       >
         <PerspectiveCamera makeDefault position={[0, 0, isMobile ? 12 : 9.5]} fov={isMobile ? 50 : 45} near={0.1} far={1000} />
         <CameraController progressRef={progressRef} target={activeLoc} globeGroupRef={globeGroupRef} isManual={isManual} />
 
         <OrbitControls
-          enabled={!isMobile || isLocked}
+          enabled={isLocked}
           enablePan={false}
           enableZoom={false}
           autoRotate={false}
