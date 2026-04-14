@@ -39,8 +39,9 @@ export default function SplashScreen({
 
         const runSequence = async () => {
             // STEP A: Initial 'Neural Snap' Animation
+            const isSmallScreen = window.innerWidth < 768;
             await titleControls.start({
-                letterSpacing: ["150px", "4px"],
+                letterSpacing: [isSmallScreen ? "40px" : "150px", "4px"],
                 scale: [1.5, 1],
                 opacity: [0, 1],
                 textShadow: base3DShadow,
@@ -164,14 +165,15 @@ export default function SplashScreen({
 
                 {/* Layer 5: Typography - Main Title with Relic Chromatic Glitch */}
                 <motion.h1
-                    className="relative z-10 font-normal uppercase m-0 leading-none whitespace-break-spaces break-words"
+                    className="relative z-10 font-normal uppercase m-0 leading-[1.1] whitespace-pre-wrap break-words"
                     style={{
-                        fontSize: "clamp(3rem, 10vw, 10rem)",
+                        fontSize: "clamp(2.5rem, 8vw, 8rem)",
                         color: "#FCEE0A", // Bright Neon Yellow
                         textShadow: "-5px 5px 0px #00F0FF, 0 0 15px rgba(252,238,10,0.3)",
-                        willChange: "transform, text-shadow, opacity, letter-spacing, skew"
+                        willChange: "transform, text-shadow, opacity, letter-spacing, skew",
+                        maxWidth: "90vw"
                     }}
-                    initial={{ scale: 1.5, letterSpacing: "150px", opacity: 0 }}
+                    initial={{ scale: 1.5, letterSpacing: window.innerWidth < 768 ? "40px" : "150px", opacity: 0 }}
                     animate={titleControls}
                 >
                     {mainText}
