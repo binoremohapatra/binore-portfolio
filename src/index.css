@@ -1,0 +1,179 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: 'Cyberpunk';
+  src: url('./assets/fonts/Cyberpunk.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@theme {
+  --font-sans: 'Orbitron', 'Tektur', 'Inter', system-ui, sans-serif;
+  --font-cyberpunk: 'Cyberpunk', sans-serif;
+  --color-cyber-yellow: #FCEE0A;
+  --color-cyber-red: #FF003C;
+  --color-cyber-cyan: #00F0FF;
+}
+
+body {
+  margin: 0;
+  background-color: #000;
+  color: #fff;
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+}
+
+/* Custom utility for text glitch rendering */
+.glitch-layer {
+  mix-blend-mode: screen;
+}
+
+@keyframes scanline {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+.animate-scanline {
+  animation: scanline 8s linear infinite;
+}
+
+@keyframes scanlines-pan {
+  from { background-position: 0 0; }
+  to { background-position: 0 40px; }
+}
+
+.crt-lines {
+  background: repeating-linear-gradient(to bottom, rgba(0,0,0,0.35) 0, rgba(0,0,0,0.35) 2px, transparent 2px, transparent 4px);
+  background-size: 100% 4px;
+  animation: scanlines-pan 4s linear infinite;
+}
+
+.crt-overlay {
+  background: radial-gradient(circle, rgba(18, 16, 16, 0) 60%, rgba(0, 0, 0, 0.4) 100%);
+}
+
+
+
+/* Hardcore System Glitch Transition */
+.system-glitch-transition {
+  animation: systemGlitch 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  position: relative;
+}
+.system-glitch-transition::before,
+.system-glitch-transition::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: inherit;
+  z-index: 1000;
+  pointer-events: none;
+}
+.system-glitch-transition::before {
+  left: 10px;
+  animation: systemGlitchBefore 1s infinite alternate-reverse;
+  background-color: rgba(255, 0, 60, 0.2);
+  mix-blend-mode: screen;
+}
+.system-glitch-transition::after {
+  left: -10px;
+  animation: systemGlitchAfter 1s infinite alternate-reverse;
+  background-color: rgba(0, 240, 255, 0.2);
+  mix-blend-mode: screen;
+}
+
+@keyframes systemGlitch {
+  0%   { filter: hue-rotate(0deg); opacity: 1; transform: scale(1); }
+  20%  { transform: scale(1.05) translate(-10px, 5px) skewX(5deg); filter: blur(2px) contrast(2) invert(0.2); }
+  40%  { transform: scale(1.1) translate(15px, -10px) skewX(-10deg); filter: blur(1px) hue-rotate(90deg); }
+  60%  { transform: scale(1.05) translate(-15px, 20px) skewX(15deg); filter: invert(1) contrast(3); }
+  80%  { transform: scale(1.1) translate(20px, -15px) skewX(-5deg); filter: drop-shadow(0 0 20px #FF003C); }
+  90%  { opacity: 1; transform: scale(1) translate(0); filter: blur(5px) sepia(100%) hue-rotate(300deg); }
+  100% { opacity: 0; transform: scale(1.5) translate(0); filter: brightness(5) blur(10px); }
+}
+
+@keyframes systemGlitchBefore {
+  0% { clip-path: inset(10% 0 80% 0); }
+  20% { clip-path: inset(80% 0 10% 0); }
+  40% { clip-path: inset(30% 0 50% 0); transform: translateX(20px); }
+  60% { clip-path: inset(60% 0 20% 0); }
+  80% { clip-path: inset(5% 0 90% 0); transform: translateX(-20px); }
+  100% { clip-path: inset(40% 0 40% 0); }
+}
+
+@keyframes systemGlitchAfter {
+  0% { clip-path: inset(80% 0 10% 0); }
+  20% { clip-path: inset(10% 0 80% 0); transform: translateX(-20px); }
+  40% { clip-path: inset(50% 0 30% 0); }
+  60% { clip-path: inset(20% 0 60% 0); transform: translateX(20px); }
+  80% { clip-path: inset(90% 0 5% 0); }
+  100% { clip-path: inset(40% 0 40% 0); }
+}
+
+/* Home Arrival Flash */
+.home-arrival-flash {
+  animation: arrivalFlash 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+@keyframes arrivalFlash {
+  0% { opacity: 0; filter: brightness(5) saturate(3) drop-shadow(0 0 50px #FF003C); transform: scale(1.05); }
+  50% { filter: brightness(2) saturate(2) drop-shadow(0 0 20px #FF003C); transform: scale(1.02); }
+  100% { opacity: 1; filter: brightness(1) saturate(1) drop-shadow(0 0 0 transparent); transform: scale(1); }
+}
+
+
+/* --- Responsive / Mobile Overrides ----------------------------------- */
+
+/* Enable safe-area padding on the root so iPhone notch/bar areas are respected */
+html, body {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Neural Engram HUD: scale down corner hex codes and version labels */
+@media (max-width: 768px) {
+  .neural-hud-label {
+    font-size: 8px !important;
+    letter-spacing: 0.05em !important;
+  }
+  .neural-version-tag {
+    font-size: 7px !important;
+    opacity: 0.5 !important;
+  }
+
+  /* Volume toggle: reduce label size on narrow viewports */
+  .vol-toggle {
+    font-size: 8px !important;
+    padding: 5px 8px !important;
+  }
+
+  /* DataNode HTML card connector lines shrink automatically via scale(0.7) in JSX,
+     but we also compress the min-width of cards so they do not bleed off-screen */
+  .neural-data-card {
+    min-width: 110px !important;
+    font-size: 9px !important;
+    padding: 6px 8px !important;
+  }
+
+  /* Glitch transition: disable heavy invert/contrast on mobile for perf */
+  .system-glitch-transition {
+    animation: systemGlitchMobile 1s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  }
+
+  /* Lighter mobile version of glitch — no full invert, less GPU load */
+  @keyframes systemGlitchMobile {
+    0%   { opacity: 1; transform: scale(1); }
+    25%  { transform: scale(1.03) translate(-5px, 3px) skewX(2deg); filter: blur(1px) hue-rotate(60deg); }
+    50%  { transform: scale(1.05) translate(5px, -5px) skewX(-3deg); filter: drop-shadow(0 0 10px #FF003C); }
+    75%  { transform: scale(1.02) translate(0); filter: blur(3px); }
+    100% { opacity: 0; transform: scale(1.2); filter: brightness(3) blur(6px); }
+  }
+}
+
+/* Ultrawide (1920px+): increase Neural Engram container height for immersion */
+@media (min-width: 1920px) {
+  .neural-engram-container {
+    height: 1000px !important;
+  }
+}
