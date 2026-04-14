@@ -153,6 +153,7 @@ function TetheredNode({ node, isActive, isMobileSize }) {
 
   // Responsive tether distances
   const elbowX = isMobileSize ? 0.25 : 0.4;
+  const cardScale = isMobileSize ? 0.5 : 1;
   const cardX = isMobileSize ? 0.6 : 0.9;
   const tetherY = isMobileSize ? 0.2 : 0.3;
 
@@ -202,14 +203,14 @@ function TetheredNode({ node, isActive, isMobileSize }) {
           opacity: isActive ? 1 : 0.5,
           filter: isActive ? `drop-shadow(0 0 20px ${T.cyan})` : 'none',
           transform: isMobileSize 
-            ? `scale(${isActive ? 1.2 : 0.8})` 
+            ? `scale(${isActive ? 1.2 * cardScale : 0.8 * cardScale})` 
             : `scale(${isActive ? 1.5 : 1.0})`,
         }}>
           <div style={{ 
             background: 'rgba(0,0,0,0.95)', 
             border: `1px solid ${isActive ? T.cyan : T.neonRed}aa`, 
             padding: isActive ? '12px 20px' : '8px 12px', 
-            minWidth: isMobileSize ? '130px' : (isActive ? '220px' : '160px'), 
+            minWidth: isMobileSize ? '110px' : (isActive ? '220px' : '160px'), 
             clipPath: 'polygon(0 0, calc(100% - 15px) 0, 100% 15px, 100% 100%, 0 100%)', 
             position: 'relative',
             boxShadow: isActive ? `0 0 30px ${T.cyan}33` : 'none',
@@ -285,10 +286,11 @@ function CyberBrain({ activeRegionId, tier, config, isMobile }) {
     const centre = new THREE.Vector3(); box.getCenter(centre);
     merged.translate(-centre.x, -centre.y, -centre.z);
     const size = new THREE.Vector3(); box.getSize(size);
-    const scale = 2.4 / Math.max(size.x, size.y, size.z);
+    const brainScale = isMobile ? (activeRegionId ? 1.2 : 1.0) : 2.4;
+    const scale = brainScale / Math.max(size.x, size.y, size.z);
     merged.scale(scale, scale, scale);
     return merged;
-  }, [scene]);
+  }, [scene, isMobile, activeRegionId]);
 
   // HIGH / MEDIUM: Full GLSL holographic shader
   const uniforms = useMemo(() => ({ uTime: { value: 0 }, uColor: { value: T.redV.clone() }, uOpacity: { value: 0.9 } }), []);
