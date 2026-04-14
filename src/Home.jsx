@@ -700,7 +700,7 @@ export default function Home() {
                 className="relative"
                 style={{
                     scrollSnapAlign: 'start',
-                    height: isMobile ? '100vh' : '400vh',         // Mobile: static height; PC: tall scroll container
+                    height: '100vh',         // lowered to 100vh for single scroll
                     scrollSnapStop: 'always',
                 }}
             >
