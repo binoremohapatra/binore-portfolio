@@ -511,7 +511,12 @@ function RotatingGlobe({
   useFrame((state) => {
     if (globeGroupRef.current) {
       const p = progressRef?.current ?? 0;
-      const rotSpeed = p < 0.45 ? (isNeuralLinked ? 0 : 0.001) : 0.0002;
+      // Rotation stops during Neural Link, and resumes if the user takes manual control
+      const isRotating = !isNeuralLinked || (isNeuralLinked && globeOpacity < 1 && tacticalOpacity > 0 && globeGroupRef.current.userData.manualResume);
+      
+      const baseSpeed = p < 0.45 ? 0.001 : 0.0002;
+      const rotSpeed = isRotating ? baseSpeed : 0;
+      
       globeGroupRef.current.rotation.y += rotSpeed;
 
       // Subtle mouse tilt
@@ -662,9 +667,9 @@ export default function HolographicUplink({ progressRef }) {
       }, 0);
       
       tl.to(controlsRef.current.object.position, {
-        x: targetPos.x * 1.04,
-        y: targetPos.y * 1.04,
-        z: targetPos.z * 1.04,
+        x: targetPos.x * 1.5, // Pull back to surface + 1.2 units (2.4 * 1.5 = 3.6)
+        y: targetPos.y * 1.5,
+        z: targetPos.z * 1.5,
         duration: 5,
         ease: "power4.inOut"
       }, 0);
@@ -775,9 +780,14 @@ export default function HolographicUplink({ progressRef }) {
             if (ref && !isControlsReady) setIsControlsReady(true);
           }}
           enablePan={false}
-          enableZoom={false}
+          enableZoom={true} // Allow subtle zoom
+          minDistance={GLOBE_R + 1.0} // Prevent clipping
+          maxDistance={15}
           autoRotate={false}
-          onStart={() => setIsManual(true)}
+          onStart={() => {
+            setIsManual(true);
+            if (globeGroupRef.current) globeGroupRef.current.userData.manualResume = true;
+          }}
           makeDefault
         />
 
