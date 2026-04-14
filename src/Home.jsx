@@ -885,7 +885,7 @@ export default function Home() {
                             </h2>
 
                             {/* Static Mode or Mobile → text fallback card */}
-                            isStaticMode ? (
+                            {isStaticMode ? (
                                 <div className="p-8 bg-[#050505] border border-[#FF003C] flex flex-col gap-4" style={{ clipPath: 'polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px)' }}>
                                     <div className="text-[10px] text-[#FF003C] font-mono tracking-[0.2em] uppercase flex items-center gap-2">
                                         <span className="w-2 h-2 bg-[#FF003C] rounded-full animate-ping" />
