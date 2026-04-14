@@ -559,20 +559,31 @@ function RotatingGlobe({
 
       {visitorLoc && <HotspotPing city={visitorLoc} isActive color={COLORS.magenta} />}
 
-      {/* Primary Labeled Pins */}
-      <LocationMarker
-        city={HOST_LOC}
-        label="DEVELOPER (DELHI)"
-        color={COLORS.yellow}
-        isNeuralLink={isNeuralLinked}
-      />
+      {/* Primary Labeled Pins — Hide individual cards if linked to prevent overlap */}
+      {!isNeuralLinked && (
+        <>
+          <LocationMarker
+            city={HOST_LOC}
+            label="DEVELOPER (DELHI)"
+            color={COLORS.yellow}
+          />
+          {visitorLoc && (
+            <LocationMarker
+              city={visitorLoc}
+              label={`YOU (${visitorLoc.name.replace('_NODE', '')})`}
+              color={COLORS.magenta}
+            />
+          )}
+        </>
+      )}
 
-      {visitorLoc && (
+      {/* Merged Neural Beacon */}
+      {isNeuralLinked && (
         <LocationMarker
-          city={visitorLoc}
-          label={`YOU (${visitorLoc.name.replace('_NODE', '')})`}
-          color={COLORS.magenta}
-          isNeuralLink={isNeuralLinked}
+          city={HOST_LOC}
+          label="[ NEURAL LINK: SYNC ESTABLISHED ]"
+          color={COLORS.yellow}
+          isNeuralLink={true}
         />
       )}
 
@@ -619,14 +630,15 @@ export default function HolographicUplink({ progressRef }) {
 
   // Neural Link (Proximity Zoom) Logic
   useEffect(() => {
-    if (uplinkDistance !== null && uplinkDistance <= 5 && !isNeuralLinked && controlsRef.current) {
+    const threshold = 50; // Increased to 50km for city-wide trigger
+    if (uplinkDistance !== null && uplinkDistance <= threshold && !isNeuralLinked && controlsRef.current) {
       setIsNeuralLinked(true);
       setIsManual(true);
       const targetPos = latLonToVec3(HOST_LOC.lat, HOST_LOC.lon, GLOBE_R);
       
       const tl = gsap.timeline();
       
-      // 1. Linking Counter (Decimal fix)
+      // 1. Linking Counter
       tl.to({ val: 0 }, {
         val: 100,
         duration: 4,
@@ -636,7 +648,7 @@ export default function HolographicUplink({ progressRef }) {
         }
       }, 0);
 
-      // 2. Camera Sat-Descent (Tactical Snap)
+      // 2. Camera Sat-Descent (Deeper Zoom)
       tl.to(controlsRef.current.target, {
         x: targetPos.x,
         y: targetPos.y,
@@ -646,9 +658,9 @@ export default function HolographicUplink({ progressRef }) {
       }, 0);
       
       tl.to(controlsRef.current.object.position, {
-        x: targetPos.x * 1.05, // Much closer street level
-        y: targetPos.y * 1.05,
-        z: targetPos.z * 1.05,
+        x: targetPos.x * 1.04, // Deeper dive (1.04)
+        y: targetPos.y * 1.04,
+        z: targetPos.z * 1.04,
         duration: 5,
         ease: "power4.inOut"
       }, 0);
@@ -688,6 +700,14 @@ export default function HolographicUplink({ progressRef }) {
             name: data.city ? `${data.city.toUpperCase()}_NODE` : 'UNKNOWN_NODE',
           });
           setUplinkDistance(haversineKm(data.latitude, data.longitude, HOST_LOC.lat, HOST_LOC.lon));
+          console.table({
+            Status: "Geolocated",
+            User_Lat: data.latitude,
+            User_Lon: data.longitude,
+            Target_Lat: HOST_LOC.lat,
+            Target_Lon: HOST_LOC.lon,
+            Distance_KM: haversineKm(data.latitude, data.longitude, HOST_LOC.lat, HOST_LOC.lon)
+          });
         }
       })
       .catch(() => console.warn('Visitor geolocation unavailable.'));
