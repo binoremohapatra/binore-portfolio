@@ -448,21 +448,29 @@ export default function HolographicUplink({ progressRef }) {
 
   return (
     <div style={{ position: 'sticky', top: 0, left: 0, width: '100%', height: '100vh', overflow: 'hidden' }}>
-      {/* HUD Overlay */}
-      <div style={{ position: 'absolute', bottom: '50px', right: '50px', zIndex: 10, pointerEvents: 'none', fontFamily: "'Orbitron', sans-serif", textAlign: 'right' }}>
-        <div style={{ color: COLORS.yellow, fontSize: '11px', letterSpacing: '0.35em', marginBottom: '6px' }}>UPLINK SECURED</div>
-        <div style={{ color: COLORS.cyan, fontSize: '32px', fontWeight: 900, textShadow: `0 0 12px ${COLORS.cyan}` }}>
+      {/* HUD Overlay — Responsive scales */}
+      <div style={{
+        position: 'absolute',
+        bottom: isMobile ? '30px' : '50px',
+        right: isMobile ? '30px' : '50px',
+        zIndex: 10,
+        pointerEvents: 'none',
+        fontFamily: "'Orbitron', sans-serif",
+        textAlign: 'right'
+      }}>
+        <div style={{ color: COLORS.yellow, fontSize: isMobile ? '8px' : '11px', letterSpacing: '0.35em', marginBottom: '6px' }}>UPLINK SECURED</div>
+        <div style={{ color: COLORS.cyan, fontSize: isMobile ? '20px' : '32px', fontWeight: 900, textShadow: `0 0 12px ${COLORS.cyan}` }}>
           {activeLoc.name}
         </div>
-        <div style={{ color: '#fff', fontSize: '12px', opacity: 0.8, letterSpacing: '0.15em', marginTop: '8px' }}>
+        <div style={{ color: '#fff', fontSize: isMobile ? '9px' : '12px', opacity: 0.8, letterSpacing: '0.15em', marginTop: '8px' }}>
           LAT: {activeLoc.lat.toFixed(4)} // LON: {activeLoc.lon.toFixed(4)}
         </div>
         {visitorLoc && (
           <div style={{ marginTop: '12px', borderTop: '1px solid #FF00FF44', paddingTop: '10px' }}>
-            <div style={{ color: COLORS.magenta, fontSize: '9px', letterSpacing: '0.3em', marginBottom: '4px' }}>INBOUND UPLINK DETECTED</div>
-            <div style={{ color: '#fff', fontSize: '13px', fontWeight: 700, textShadow: `0 0 8px ${COLORS.magenta}` }}>{visitorLoc.name}</div>
-            <div style={{ color: COLORS.magenta, fontSize: '10px', marginTop: '4px', opacity: 0.8 }}>
-              UPLINK DISTANCE: {uplinkDistance ? uplinkDistance.toLocaleString() + ' KM' : 'CALCULATING...'}
+            <div style={{ color: COLORS.magenta, fontSize: isMobile ? '7px' : '9px', letterSpacing: '0.3em', marginBottom: '4px' }}>INBOUND UPLINK DETECTED</div>
+            <div style={{ color: '#fff', fontSize: isMobile ? '10px' : '13px', fontWeight: 700, textShadow: `0 0 8px ${COLORS.magenta}` }}>{visitorLoc.name}</div>
+            <div style={{ color: COLORS.magenta, fontSize: isMobile ? '8px' : '10px', marginTop: '4px', opacity: 0.8 }}>
+              {uplinkDistance ? uplinkDistance.toLocaleString() + ' KM' : 'CALCULATING...'}
             </div>
           </div>
         )}
@@ -478,7 +486,7 @@ export default function HolographicUplink({ progressRef }) {
         }}
         onCreated={onCanvasCreated}
       >
-        <PerspectiveCamera makeDefault position={[0, 0, 9.5]} fov={45} near={0.1} far={1000} />
+        <PerspectiveCamera makeDefault position={[0, 0, isMobile ? 12 : 9.5]} fov={isMobile ? 50 : 45} near={0.1} far={1000} />
         <CameraController progressRef={progressRef} target={activeLoc} globeGroupRef={globeGroupRef} />
 
         {/* FPS Watchdog — reports to quality engine */}
@@ -502,14 +510,16 @@ export default function HolographicUplink({ progressRef }) {
           <ambientLight intensity={1.0} />
 
           <Suspense fallback={null}>
-            <RotatingGlobe
-              progressRef={progressRef}
-              activeLoc={activeLoc}
-              setActiveLoc={setActiveLoc}
-              globeGroupRef={globeGroupRef}
-              visitorLoc={visitorLoc}
-              config={config}
-            />
+            <group scale={isMobile ? 0.75 : 1}>
+               <RotatingGlobe
+                 progressRef={progressRef}
+                 activeLoc={activeLoc}
+                 setActiveLoc={setActiveLoc}
+                 globeGroupRef={globeGroupRef}
+                 visitorLoc={visitorLoc}
+                 config={config}
+               />
+            </group>
           </Suspense>
         </PerformanceMonitor>
       </Canvas>
