@@ -409,7 +409,11 @@ function FrameCapController({ frameCapMs }) {
   return null;
 }
 
-// ─── Main Export ──────────────────────────────────────────────────────────────
+export default function NeuralMind() {
+  const { tier, config, onCanvasCreated, reportFPS } = useQuality();
+  const [activeRegion, setActiveRegion] = useState(null);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [perfDown, setPerfDown] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
   const lastTap = useRef(0);
   const { playHover, playRot, playClick } = useCyberAudio();
