@@ -559,33 +559,36 @@ function RotatingGlobe({
 
       {visitorLoc && <HotspotPing city={visitorLoc} isActive color={COLORS.magenta} />}
 
-      {/* Primary Labeled Pins — Hide individual cards if linked to prevent overlap */}
-      {!isNeuralLinked && (
-        <>
-          <LocationMarker
-            city={HOST_LOC}
-            label="DEVELOPER (DELHI)"
-            color={COLORS.yellow}
-          />
-          {visitorLoc && (
+      {/* Neural Link Logic — Merge pins if very close to prevent overlap */}
+      {(() => {
+        const isClose = uplinkDistance !== null && uplinkDistance < 100;
+        if (isClose || isNeuralLinked) {
+          return (
             <LocationMarker
-              city={visitorLoc}
-              label={`YOU (${visitorLoc.name.replace('_NODE', '')})`}
-              color={COLORS.magenta}
+              city={HOST_LOC}
+              label={isNeuralLinked ? "[ NEURAL LINK: SYNC ESTABLISHED ]" : "[ NEARBY UPLINK DETECTED ]"}
+              color={COLORS.yellow}
+              isNeuralLink={true}
             />
-          )}
-        </>
-      )}
-
-      {/* Merged Neural Beacon */}
-      {isNeuralLinked && (
-        <LocationMarker
-          city={HOST_LOC}
-          label="[ NEURAL LINK: SYNC ESTABLISHED ]"
-          color={COLORS.yellow}
-          isNeuralLink={true}
-        />
-      )}
+          );
+        }
+        return (
+          <>
+            <LocationMarker
+              city={HOST_LOC}
+              label="DEVELOPER (DELHI)"
+              color={COLORS.yellow}
+            />
+            {visitorLoc && (
+              <LocationMarker
+                city={visitorLoc}
+                label={`YOU (${visitorLoc.name.replace('_NODE', '')})`}
+                color={COLORS.magenta}
+              />
+            )}
+          </>
+        );
+      })()}
 
       {/* Uplink Arc — disabled on LOW tier */}
       {config.uplinkArcEnabled && visitorLoc && <UplinkArc visitorLoc={visitorLoc} />}
@@ -608,6 +611,7 @@ export default function HolographicUplink({ progressRef }) {
   const [linkingProgress, setLinkingProgress] = useState(0);
   const [globeOpacity, setGlobeOpacity] = useState(1);
   const [tacticalOpacity, setTacticalOpacity] = useState(0);
+  const [isControlsReady, setIsControlsReady] = useState(false);
   const controlsRef = useRef();
 
   // Reset logic (Scroll up or Zoom out)
@@ -630,8 +634,8 @@ export default function HolographicUplink({ progressRef }) {
 
   // Neural Link (Proximity Zoom) Logic
   useEffect(() => {
-    const threshold = 50; // Increased to 50km for city-wide trigger
-    if (uplinkDistance !== null && uplinkDistance <= threshold && !isNeuralLinked && controlsRef.current) {
+    const threshold = 100; // 100km for reliable trigger
+    if (uplinkDistance !== null && uplinkDistance <= threshold && !isNeuralLinked && isControlsReady && controlsRef.current) {
       setIsNeuralLinked(true);
       setIsManual(true);
       const targetPos = latLonToVec3(HOST_LOC.lat, HOST_LOC.lon, GLOBE_R);
@@ -658,7 +662,7 @@ export default function HolographicUplink({ progressRef }) {
       }, 0);
       
       tl.to(controlsRef.current.object.position, {
-        x: targetPos.x * 1.04, // Deeper dive (1.04)
+        x: targetPos.x * 1.04,
         y: targetPos.y * 1.04,
         z: targetPos.z * 1.04,
         duration: 5,
@@ -685,7 +689,7 @@ export default function HolographicUplink({ progressRef }) {
         onUpdate: function() { setTacticalOpacity(this.targets()[0].top); }
       }, 1);
     }
-  }, [uplinkDistance, isNeuralLinked]);
+  }, [uplinkDistance, isNeuralLinked, isControlsReady]);
 
   // Visitor IP geolocation
   useEffect(() => {
@@ -766,6 +770,10 @@ export default function HolographicUplink({ progressRef }) {
         <CameraController progressRef={progressRef} target={activeLoc} globeGroupRef={globeGroupRef} isManual={isManual} />
 
         <OrbitControls
+          ref={(ref) => {
+            controlsRef.current = ref;
+            if (ref && !isControlsReady) setIsControlsReady(true);
+          }}
           enablePan={false}
           enableZoom={false}
           autoRotate={false}
