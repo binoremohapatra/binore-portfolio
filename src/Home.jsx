@@ -664,7 +664,7 @@ export default function Home() {
                                             <div className="absolute bottom-0 right-0 w-px h-4" style={{ background: COLORS.red }} />
                                         </div>
 
-                                        <div className="text-[10px] md:text-xs uppercase tracking-[0.3em] mb-5 font-bold animate-pulse" style={{ color: COLORS.cyan, paddingLeft: '20px' }}>
+                                        <div className="text-[10px] md:text-xs uppercase tracking-[0.3em] mb-6 font-bold animate-pulse" style={{ color: COLORS.cyan, paddingLeft: '45px', paddingTop: '5px' }}>
                                             <a 
                                                 href="https://github.com/binoremohapatra" 
                                                 target="_blank" 
