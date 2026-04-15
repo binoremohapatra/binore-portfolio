@@ -177,7 +177,7 @@ const PROJECTS = [
         type: 'E-COMMERCE PLATFORM',
         tags: ['Spring Boot', 'React', 'PostgreSQL'],
         desc: 'Full-stack shopping platform with Spring Boot REST APIs, React storefront, JWT authentication, and PostgreSQL. Built for real traffic and scale.',
-        accent: COLORS.yellow,
+        accent: COLORS.cyan,
     },
     {
         id: '02',
@@ -194,7 +194,7 @@ const PROJECTS = [
         type: 'LOCAL AI ASSISTANT',
         tags: ['Ollama', 'Python', 'Local LLM'],
         desc: 'A fully private, on-device AI assistant powered by Ollama. No cloud, no data leaks — runs entirely on local hardware.',
-        accent: COLORS.red,
+        accent: COLORS.cyan,
         experimental: true,
     },
     {
@@ -203,7 +203,7 @@ const PROJECTS = [
         type: 'GEOSPATIAL AI',
         tags: ['Geospatial AI', 'Flutter', 'PostgreSQL'],
         desc: 'Urban intelligence platform that fuses satellite data, ML models, and live sensor feeds into a real-time geospatial layer for smart city infrastructure.',
-        accent: COLORS.yellow,
+        accent: COLORS.cyan,
     },
     {
         id: '05',
@@ -219,7 +219,7 @@ const PROJECTS = [
         type: 'AI · EDUCATION',
         tags: ['Ollama', 'FastAPI', 'RAG'],
         desc: 'AI-Powered personalized tutor. Uses local LLM inference and a RAG pipeline to adapt to how YOU learn. No cloud, no lock-in.',
-        accent: COLORS.yellow,
+        accent: COLORS.cyan,
         shipped: true,
     },
 ];
@@ -800,7 +800,7 @@ export default function Home() {
                                     className="group relative cursor-pointer tactical-hover"
                                     style={{
                                         background: '#06090D',
-                                        border: p.shipped ? `1px solid ${COLORS.yellow}` : (p.id === '05' ? `1px solid ${COLORS.red}` : `1px solid #1a1a1a`),
+                                        border: `1px solid #1a1a1a`,
                                         clipPath: 'polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px)',
                                         padding: '2.2rem',
                                     }}
