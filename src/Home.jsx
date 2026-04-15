@@ -664,18 +664,7 @@ export default function Home() {
                                             <div className="absolute bottom-0 right-0 w-px h-4" style={{ background: COLORS.red }} />
                                         </div>
 
-                                        <div className="text-[10px] md:text-xs uppercase tracking-[0.3em] mb-6 font-bold animate-pulse" style={{ color: COLORS.cyan, paddingLeft: '8px', paddingTop: '30px' }}>
-                                            <a 
-                                                href="https://github.com/binoremohapatra" 
-                                                target="_blank" 
-                                                rel="noopener noreferrer"
-                                                onMouseEnter={playHover}
-                                                className="hover:text-white transition-colors cursor-pointer"
-                                                style={{ pointerEvents: 'auto' }}
-                                            >
-                                                [ TERMINAL_UPLINK ESTABLISHED ]
-                                            </a>
-                                         </div>
+
 
                                         <p className="mb-4">
                                             I'm a Full-Stack Developer currently in my 4th sem of B.Tech CSE, having shipped 5 production-grade projects.
