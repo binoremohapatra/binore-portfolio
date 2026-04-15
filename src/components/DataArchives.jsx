@@ -32,11 +32,11 @@ function Counter({ value, suffix = "" }) {
 }
 
 const TIMELINE = [
-  { era: 'SEMESTER 01 // 2023', log: 'INITIALIZED_JAVA_CORE.exe', desc: 'Started with Java. Understood the logic of systems. Realized this was a craft, not just a degree.' },
+  { era: 'SEMESTER 01 // 2024', log: 'INITIALIZED_JAVA_CORE.exe', desc: 'Started with Java. Understood the logic of systems. Realized this was a craft, not just a degree.' },
   { era: 'SEMESTER 02 // 2024', log: 'SHIPPED_REACTORX.exe', desc: 'Built first production full-stack app. Spring Boot, React, JWT, PostgreSQL. Real scale achieved.' },
-  { era: 'SEM 02–03 // 2024', log: 'PIVOT_TO_IMPACT.vdf', desc: 'CivicSolver and Delhi Kavach. Started caring about what code actually does in the world.' },
-  { era: 'SEMESTER 03 // 2025', log: 'LOCAL_AI_PROTOCOL.bin', desc: 'Maeve AI, Suraksha Setu, Masis AI. Building faster than the semester can keep up.' },
-  { era: 'NOW // 2026', log: 'AURA_COMPANION_ALIVE.sys', desc: 'Building Aura AI — a 3D on-device AI companion. Most technically complex project to date.' },
+  { era: 'SEM 02–03 // 2025', log: 'PIVOT_TO_IMPACT.vdf', desc: 'CivicSolver and Delhi Kavach. Started caring about what code actually does in the world.' },
+  { era: 'SEMESTER 03 // 2025', log: 'LOCAL_AI_PROTOCOL.bin', desc: 'Maeve AI, Suraksha Setu, Mavis AI. Building faster than the semester can keep up.' },
+  { era: 'NOW // 2026', log: 'NEURAL_BRIDGE_ACTIVE.sys', desc: 'Semester 04: Focused on Maeve AI and Mavis AI. Building the future of private, local intelligence.' },
 ];
 
 export default function DataArchives() {
@@ -57,7 +57,7 @@ export default function DataArchives() {
             <p>I didn't start with a roadmap. I started with Java, a lot of bugs, and the slow realization that writing code meant I could build anything.</p>
             <p>By semester 2 I had shipped ReactorX. That's when I stopped thinking like a student and started thinking like an engineer.</p>
             <p>Then I pivoted toward impact. CivicSolver, Delhi Kavach, Suraksha Setu. I wasn't building to pass exams anymore — I was building for the real world.</p>
-            <p>Now, I'm all in on local AI. Maeve AI, Masis AI, and Aura AI. Privacy matters. Governance can be automated. Flat screens are boring.</p>
+            <p>Now, I'm all in on local AI. Maeve AI and Mavis AI. Privacy matters. Governance can be automated. Flat screens are boring.</p>
           </div>
         </motion.div>
 
@@ -66,7 +66,7 @@ export default function DataArchives() {
             { label: 'PROJECTS_SHIPPED', val: 7 },
             { label: 'AI_SYSTEMS', val: 5 },
             { label: 'TECH_STACK', val: 10, suffix: "+" },
-            { label: 'CURRENT_SEM', val: 3, suffix: "rd" },
+            { label: 'CURRENT_SEM', val: 4, suffix: "th" },
           ].map((stat, i) => (
             <motion.div 
               key={i}

@@ -547,7 +547,11 @@ export default function HolographicUplink({ progressRef }) {
   const globeGroupRef = useRef();
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
   useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    const handleResize = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (!mobile) setIsLocked(true); // Auto-unlock when switching to desktop
+    };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
@@ -555,10 +559,11 @@ export default function HolographicUplink({ progressRef }) {
   const [visitorLoc, setVisitorLoc] = useState(null);
   const [uplinkDistance, setUplinkDistance] = useState(null);
 
-  const [isLocked, setIsLocked] = useState(false);
+  const [isLocked, setIsLocked] = useState(() => window.innerWidth >= 768);
   const lastTap = useRef(0);
 
   const handleInteractionToggle = useCallback((e) => {
+    if (!isMobile) return; // Desktop is always unlocked
     // Detect double tap/click
     const now = Date.now();
     const DOUBLE_TAP_DELAY = 300;
@@ -566,7 +571,7 @@ export default function HolographicUplink({ progressRef }) {
       setIsLocked(prev => !prev);
     }
     lastTap.current = now;
-  }, []);
+  }, [isMobile]);
 
   const [isManual, setIsManual] = useState(false);
 
@@ -607,32 +612,34 @@ export default function HolographicUplink({ progressRef }) {
         touchAction: isLocked ? 'none' : 'pan-y pinch-zoom'
       }}
     >
-      {/* Universal Interaction Hint */}
-      <div style={{
-        position: 'absolute',
-        top: isMobile ? '20%' : '15%',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        zIndex: 100,
-        pointerEvents: 'none',
-        fontFamily: "'Orbitron', sans-serif",
-        textAlign: 'center',
-        background: 'rgba(0, 0, 0, 0.7)',
-        padding: '8px 16px',
-        border: `1px solid ${isLocked ? COLORS.cyan : COLORS.yellow}`,
-        color: isLocked ? COLORS.cyan : COLORS.yellow,
-        fontSize: isMobile ? '9px' : '11px',
-        letterSpacing: '0.25em',
-        textShadow: `0 0 8px ${isLocked ? COLORS.cyan : COLORS.yellow}`,
-        clipPath: 'polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px)',
-        animation: isLocked ? 'none' : 'pulse 2s infinite',
-        opacity: 0.8
-      }}>
-        {isLocked 
-          ? `TACTICAL_LINK ACTIVE [ ${isMobile ? 'TAP' : 'CLICK'} x2 TO LOCK ]` 
-          : `GLOBAL_MAP_STATION [ ${isMobile ? 'TAP' : 'CLICK'} x2 TO ENGAGE ]`
-        }
-      </div>
+      {/* Universal Interaction Hint — Only on Mobile */}
+      {isMobile && (
+        <div style={{
+          position: 'absolute',
+          top: isMobile ? '20%' : '15%',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          zIndex: 100,
+          pointerEvents: 'none',
+          fontFamily: "'Orbitron', sans-serif",
+          textAlign: 'center',
+          background: 'rgba(0, 0, 0, 0.7)',
+          padding: '8px 16px',
+          border: `1px solid ${isLocked ? COLORS.cyan : COLORS.yellow}`,
+          color: isLocked ? COLORS.cyan : COLORS.yellow,
+          fontSize: isMobile ? '9px' : '11px',
+          letterSpacing: '0.25em',
+          textShadow: `0 0 8px ${isLocked ? COLORS.cyan : COLORS.yellow}`,
+          clipPath: 'polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px)',
+          animation: isLocked ? 'none' : 'pulse 2s infinite',
+          opacity: 0.8
+        }}>
+          {isLocked 
+            ? `TACTICAL_LINK ACTIVE [ TAP x2 TO LOCK ]` 
+            : `GLOBAL_MAP_STATION [ TAP x2 TO ENGAGE ]`
+          }
+        </div>
+      )}
 
       {/* Animation for hint */}
       <style>{`

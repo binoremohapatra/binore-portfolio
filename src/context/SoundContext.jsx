@@ -56,12 +56,22 @@ export const SoundProvider = ({ children }) => {
         } else {
             // Only resume if the user actually officially started the BGM before toggling mute
             if (bgmStarted.current) {
+                const handlePlay = (audio, label) => {
+                    audio.play().catch(e => {
+                        if (e.name === 'NotAllowedError') {
+                            console.log(`[SoundContext] ${label} playback deferred until interaction.`);
+                        } else {
+                            console.warn(`[SoundContext] ${label} playback failed:`, e);
+                        }
+                    });
+                };
+
                 if (isClassifiedActive.current) {
-                    classifiedAudio.play().catch(e => console.warn("Failed to resume Classified BGM:", e));
+                    handlePlay(classifiedAudio, "Classified BGM");
                 } else if (isRebelActive.current) {
-                    rebelAudio.play().catch(e => console.warn("Failed to resume Rebel BGM:", e));
+                    handlePlay(rebelAudio, "Rebel BGM");
                 } else {
-                    bgmSfx.play().catch(e => console.warn("Failed to resume BGM:", e));
+                    handlePlay(bgmSfx, "BGM");
                 }
             }
         }
@@ -79,12 +89,22 @@ export const SoundProvider = ({ children }) => {
             } else {
                 // Resume ONLY if the user hasn't muted and the music was already started
                 if (!isMuted && bgmStarted.current) {
+                    const handlePlay = (audio, label) => {
+                        audio.play().catch(e => {
+                            if (e.name === 'NotAllowedError') {
+                                console.log(`[SoundContext] ${label} visibility resume deferred.`);
+                            } else {
+                                console.warn(`[SoundContext] Visibility resume fail (${label}):`, e);
+                            }
+                        });
+                    };
+
                     if (isClassifiedActive.current) {
-                        classifiedAudio.play().catch(e => console.warn("Visibility resume fail (Classified):", e));
+                        handlePlay(classifiedAudio, "Classified");
                     } else if (isRebelActive.current) {
-                        rebelAudio.play().catch(e => console.warn("Visibility resume fail (Rebel):", e));
+                        handlePlay(rebelAudio, "Rebel");
                     } else {
-                        bgmSfx.play().catch(e => console.warn("Visibility resume fail (BGM):", e));
+                        handlePlay(bgmSfx, "BGM");
                     }
                 }
             }
@@ -141,7 +161,9 @@ export const SoundProvider = ({ children }) => {
     const playBGM = () => {
         bgmStarted.current = true;
         if (isMuted) return;
-        bgmSfx.play().catch(e => console.warn(e));
+        bgmSfx.play().catch(e => {
+            if (e.name !== 'NotAllowedError') console.warn(e);
+        });
     };
 
     const triggerRebelPath = () => {
@@ -154,7 +176,9 @@ export const SoundProvider = ({ children }) => {
         bgmStarted.current = true; // Safety in case Boot Sequence was skipped
 
         if (isMuted) return;
-        rebelAudio.play().catch(e => console.warn("Rebel Path trigger failed:", e));
+        rebelAudio.play().catch(e => {
+            if (e.name !== 'NotAllowedError') console.warn("Rebel Path trigger failed:", e);
+        });
     };
 
     const triggerClassifiedMusic = () => {

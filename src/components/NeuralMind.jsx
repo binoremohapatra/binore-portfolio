@@ -12,7 +12,7 @@
  */
 
 import React, {
-  useRef, useMemo, useState, useEffect, Suspense,
+  useRef, useMemo, useState, useEffect, useCallback, Suspense,
 } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useGLTF, Html, Stars, PerformanceMonitor } from '@react-three/drei';
@@ -414,24 +414,29 @@ export default function NeuralMind() {
   const [activeRegion, setActiveRegion] = useState(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [perfDown, setPerfDown] = useState(false);
-  const [isLocked, setIsLocked] = useState(false);
+  const [isLocked, setIsLocked] = useState(window.innerWidth >= 768);
   const lastTap = useRef(0);
   const { playHover, playRot, playClick } = useCyberAudio();
   
   const handleInteractionToggle = useCallback((e) => {
+    if (!isMobile) return; // Desktop is always unlocked
     const now = Date.now();
     const DOUBLE_TAP_DELAY = 300;
     if (now - lastTap.current < DOUBLE_TAP_DELAY) {
       setIsLocked(prev => !prev);
     }
     lastTap.current = now;
-  }, []);
+  }, [isMobile]);
 
   // FPS buffer for watchdog
   const fpsBuffer = useRef([]);
 
   useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 768);
+    const check = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (!mobile) setIsLocked(true); // Auto-unlock when switching to desktop
+    };
     window.addEventListener('resize', check);
     return () => window.removeEventListener('resize', check);
   }, []);
@@ -467,32 +472,34 @@ export default function NeuralMind() {
           </div>
         </div>
 
-        {/* Global Interaction Hint */}
-        <div style={{
-          position: 'absolute',
-          top: isMobile ? '25%' : '20%',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          zIndex: 100,
-          pointerEvents: 'none',
-          fontFamily: "'Orbitron', sans-serif",
-          textAlign: 'center',
-          background: 'rgba(0, 0, 0, 0.7)',
-          padding: '8px 16px',
-          border: `1px solid ${isLocked ? T.cyan : T.yellow}`,
-          color: isLocked ? T.cyan : T.yellow,
-          fontSize: isMobile ? '9px' : '11px',
-          letterSpacing: '0.25em',
-          textShadow: `0 0 8px ${isLocked ? T.cyan : T.yellow}`,
-          clipPath: 'polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px)',
-          animation: isLocked ? 'none' : 'pulseBio 2s infinite',
-          opacity: 0.8
-        }}>
-          {isLocked 
-            ? `NEURAL_BRIDGE ACTIVE [ ${isMobile ? 'TAP' : 'CLICK'} x2 TO LOCK ]` 
-            : `NEURAL_ENGRAM_CORE [ ${isMobile ? 'TAP' : 'CLICK'} x2 TO ACCESS ]`
-          }
-        </div>
+        {/* Global Interaction Hint — Only on Mobile */}
+        {isMobile && (
+          <div style={{
+            position: 'absolute',
+            top: isMobile ? '25%' : '20%',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 100,
+            pointerEvents: 'none',
+            fontFamily: "'Orbitron', sans-serif",
+            textAlign: 'center',
+            background: 'rgba(0, 0, 0, 0.7)',
+            padding: '8px 16px',
+            border: `1px solid ${isLocked ? T.cyan : T.yellow}`,
+            color: isLocked ? T.cyan : T.yellow,
+            fontSize: isMobile ? '9px' : '11px',
+            letterSpacing: '0.25em',
+            textShadow: `0 0 8px ${isLocked ? T.cyan : T.yellow}`,
+            clipPath: 'polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px)',
+            animation: isLocked ? 'none' : 'pulseBio 2s infinite',
+            opacity: 0.8
+          }}>
+            {isLocked 
+              ? `NEURAL_BRIDGE ACTIVE [ TAP x2 TO LOCK ]` 
+              : `NEURAL_ENGRAM_CORE [ TAP x2 TO ACCESS ]`
+            }
+          </div>
+        )}
 
         <style>{`
           @keyframes pulseBio {
