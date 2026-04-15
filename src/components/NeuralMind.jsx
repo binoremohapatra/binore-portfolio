@@ -447,9 +447,9 @@ function HUDCard({ activeId, onAnchorUpdate, isMobile, isLaptop }) {
   return (
     <div
       ref={cardRef}
-      className={`absolute z-50 transition-all duration-500 p-0
+      className={`absolute z-50 transition-all duration-500 p-0 transform-gpu
         ${isMobile 
-          ? 'top-[15%] left-1/2 -translate-x-1/2 w-[88%]' 
+          ? 'bottom-[20%] left-1/2 -translate-x-1/2 w-[80%] scale-[0.82]' 
           : (isLaptop 
               ? `top-1/2 -translate-y-1/2 ${isRight ? 'right-6' : 'left-6'} w-64 scale-[0.85]` 
               : `top-1/2 -translate-y-1/2 ${isRight ? 'right-16' : 'left-16'} w-64`)
@@ -476,8 +476,8 @@ function HUDCard({ activeId, onAnchorUpdate, isMobile, isLaptop }) {
         style={{ border: `1px solid ${T.arasakaRed}33`, borderLeft: `4px solid ${T.arasakaRed}` }}>
         <div className="flex justify-between items-start mb-3">
           <div>
-            <div className="text-[8px] font-mono tracking-[3px] opacity-40 mb-1" style={{ color: T.white }}>// ENGRAM</div>
-            <h2 className="text-2xl font-black uppercase italic leading-none" style={{ fontFamily: '"Orbitron"', color: '#fff' }}>{node.label}</h2>
+            <div className="text-[7px] font-mono tracking-[3px] opacity-40 mb-1" style={{ color: T.white }}>// ENGRAM</div>
+            <h2 className={`${isMobile ? 'text-xl' : 'text-2xl'} font-black uppercase italic leading-none`} style={{ fontFamily: '"Orbitron"', color: '#fff' }}>{node.label}</h2>
           </div>
           <div className="text-[8px] font-mono text-right opacity-30" style={{ color: T.white }}>
             ASN-{Math.floor(Math.random() * 899 + 100)}<br />
@@ -526,7 +526,7 @@ function HUDCard({ activeId, onAnchorUpdate, isMobile, isLaptop }) {
           to { transform: translate(0, -50%); opacity: 1; filter: blur(0); } 
         }
         @keyframes cardEnterMobile {
-          from { transform: translate(-50%, -20px); opacity: 0; filter: blur(10px); }
+          from { transform: translate(-50%, 40px); opacity: 0; filter: blur(10px); }
           to { transform: translate(-50%, 0); opacity: 1; filter: blur(0); }
         }
       `}</style>
@@ -623,7 +623,7 @@ export default function NeuralMind() {
               }`}
             style={{ 
               clipPath: isMobile 
-                ? 'polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px)'
+                ? 'polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px)'
                 : (isLaptop ? 'polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px)' : 'polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px)')
             }}
           >
@@ -646,7 +646,7 @@ export default function NeuralMind() {
         <PerformanceMonitor>
           <ambientLight intensity={1.2} />
           <Suspense fallback={null}>
-            <group scale={isMobile ? 0.45 : (isLaptop ? 0.75 : 1)} position={[0, isMobile ? 0.2 : (isLaptop ? 0.1 : 0), 0]}>
+            <group scale={isMobile ? 0.38 : (isLaptop ? 0.75 : 1)} position={[0, isMobile ? 0.45 : (isLaptop ? 0.1 : 0), 0]}>
               <CyberBrain activeId={activeId} onNodesUpdate={setNodesData} onNodeClick={handleToggle} />
             </group>
           </Suspense>
