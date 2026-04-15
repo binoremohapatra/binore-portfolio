@@ -631,7 +631,7 @@ export default function NeuralMind() {
         <PerformanceMonitor>
           <ambientLight intensity={1.2} />
           <Suspense fallback={null}>
-            <group scale={isMobile ? 0.65 : 1} position={[0, isMobile ? 0.2 : 0, 0]}>
+            <group scale={isMobile ? 0.45 : 1} position={[0, isMobile ? 0.2 : 0, 0]}>
               <CyberBrain activeId={activeId} onNodesUpdate={setNodesData} onNodeClick={handleToggle} />
             </group>
           </Suspense>
