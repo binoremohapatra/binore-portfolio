@@ -367,7 +367,7 @@ function ArasakaModal({ onClose }) {
                             </div>
 
                             {/* Blog Posts */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,320px),1fr))] gap-6">
                                 {[
                                     { id: '01', title: 'How I Built a Geospatial AI Safety Engine in Semester 3', desc: 'The full story of Delhi Kavach — the problem, the architecture, what broke, and what worked.' },
                                     { id: '02', title: 'Why I Stopped Using Cloud AI and Built Everything Locally', desc: 'How I run Llama 3 and Mistral on my custom PC, and why local AI matters for privacy.' },
@@ -773,7 +773,7 @@ export default function Home() {
 
                         {/* Project grid */}
                         <motion.div
-                            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-20"
+                            className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,350px),1fr))] gap-6 mt-20"
                             variants={glitchContainer}
                             initial="hidden"
                             whileInView="show"
@@ -791,7 +791,7 @@ export default function Home() {
                                         background: '#06090D',
                                         border: `1px solid ${p.accent}`,
                                         clipPath: 'polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px)',
-                                        padding: '2.2rem',
+                                        padding: 'clamp(1.5rem, 5vw, 2.2rem)',
                                     }}
                                 >
                                     {p.shipped && (

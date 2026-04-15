@@ -61,7 +61,7 @@ export default function DataArchives() {
           </div>
         </motion.div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,180px),1fr))] gap-4">
           {[
             { label: 'PROJECTS_SHIPPED', val: 7 },
             { label: 'AI_SYSTEMS', val: 5 },

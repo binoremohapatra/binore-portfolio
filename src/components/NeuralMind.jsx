@@ -1,272 +1,265 @@
-/**
- * NeuralMind.jsx — Adaptive Quality Edition
- * ─────────────────────────────────────────────────────────────────────────────
- * Cyberpunk Holographic Brain with full hardware-tier adaptive rendering.
- *
- * Tier Matrix:
- *  HIGH   → Full GLSL shaders, 2 point lights, 4000 stars, wireframe overlay, fog, Html nodes
- *  MEDIUM → Full GLSL shaders, 1 point light, 1500 stars, no wireframe, no fog, Html nodes
- *  LOW    → meshBasicMaterial (pre-baked look, 0 GPU cost), 0 lights, 0 stars, 30fps cap
- *
- * Draco: useGLTF('/brain.glb', true) — Drei auto-configures CDN DRACOLoader.
- */
-
 import React, {
   useRef, useMemo, useState, useEffect, useCallback, Suspense,
 } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { useGLTF, Html, Stars, PerformanceMonitor } from '@react-three/drei';
+import { useGLTF, PerformanceMonitor, Html, Line } from '@react-three/drei';
 import * as THREE from 'three';
+import gsap from 'gsap';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { useCyberAudio } from '../context/SoundContext';
 import { useQuality } from '../context/QualityContext';
 
-// ─── Design Tokens ────────────────────────────────────────────────────────────
+// ─── Arasaka Design Tokens ───────────────────────────────────────────────────
 const T = {
-  neonRed: '#FF003C',
-  cyan: '#00F0FF',
-  yellow: '#FCEE0A',
+  arasakaRed: '#ff2a42',
+  neonOrange: '#ff4500',
+  darkCrimson: '#4a000d',
   black: '#000000',
-  redV: new THREE.Color('#FF003C'),
-  cyanV: new THREE.Color('#00F0FF'),
+  white: '#ffffff',
+  redV: new THREE.Color('#ff2a42'),
+  orangeV: new THREE.Color('#ff4500'),
 };
 
-// ─── Data & Anatomy Map ───────────────────────────────────────────────────────
 const REGIONS = {
-  FRONTEND: { id: 'FRONTEND', label: 'FRONTEND', value: 88, sub: 'React · Tailwind', pos: [0, 0.4, 1.4], rot: [0, 0, 0], color: T.neonRed },
-  BACKEND: { id: 'BACKEND', label: 'BACKEND', value: 94, sub: 'Java · Spring Boot', pos: [0, 0.5, -1.4], rot: [0, Math.PI, 0], color: T.neonRed },
-  DATABASE: { id: 'DATABASE', label: 'DATABASE', value: 86, sub: 'PostgreSQL · MySQL', pos: [0, -1.0, -1.0], rot: [-Math.PI * 0.25, Math.PI, 0], color: T.neonRed },
-  SYSTEMS: { id: 'SYSTEMS', label: 'SYSTEMS', value: 85, sub: 'Geospatial AI · Flutter', pos: [0, 1.4, 0.2], rot: [Math.PI * 0.35, 0, 0], color: T.neonRed },
-  AI: { id: 'AI', label: 'AI / LLM', value: 82, sub: 'Ollama · Python', pos: [1.3, 0.3, 0.3], rot: [0, -Math.PI * 0.45, 0], color: T.neonRed },
+  FRONTEND: {
+    id: 'FRONTEND', label: 'FRONTEND', value: 88, sub: 'React · Tailwind',
+    pos: [0, 0, 1.3], rot: [0, 0, 0],
+    color: T.arasakaRed, side: 'right'
+  },
+  BACKEND: {
+    id: 'BACKEND', label: 'BACKEND', value: 94, sub: 'Java · Spring Boot',
+    pos: [0, 0.35, -1.3], rot: [0, Math.PI, 0],
+    color: T.arasakaRed, side: 'left'
+  },
+  DATABASE: {
+    id: 'DATABASE', label: 'DATABASE', value: 86, sub: 'PostgreSQL · MySQL',
+    pos: [1.1, -0.55, 0.55], rot: [0.3, -Math.PI * 0.4, 0],
+    color: T.arasakaRed, side: 'left'
+  },
+  SYSTEMS: {
+    id: 'SYSTEMS', label: 'URBAN_INTEL', value: 85, sub: 'Geospatial AI',
+    pos: [-1.1, 0.75, 0.35], rot: [-0.4, Math.PI * 0.4, 0],
+    color: T.arasakaRed, side: 'right'
+  },
+  AI: {
+    id: 'AI', label: 'CORTEX_AI', value: 82, sub: 'Ollama · Python',
+    pos: [0, 1.35, 0], rot: [Math.PI * 0.5, 0, 0],
+    color: T.arasakaRed, side: 'left'
+  },
 };
 
-// ─── GLSL: Full Holographic Brain Shader (HIGH / MEDIUM tier) ─────────────────
-const BRAIN_VERT = /* glsl */`
-  uniform float uTime;
-  varying vec3 vNormal;
-  varying vec3 vWorldPos;
-  varying vec3 vViewDir;
-  float random(vec2 st) { return fract(sin(dot(st.xy, vec2(12.9898,78.233))) * 43758.5453123); }
-  void main() {
-    vec3 p = position;
-    float glitchT = fract(uTime * 0.5);
-    if(glitchT > 0.95) { float noise = random(p.xy * uTime); p += normal * noise * 0.04; }
-    vec4 worldPos = modelMatrix * vec4(p, 1.0);
-    vec4 mvPos    = modelViewMatrix * vec4(p, 1.0);
-    vNormal       = normalize(normalMatrix * normal);
-    vWorldPos     = worldPos.xyz;
-    vViewDir      = normalize(cameraPosition - worldPos.xyz);
-    gl_Position   = projectionMatrix * mvPos;
-  }
-`;
+// ─── Arasaka Logo Component SVG ──────────────────────────────────────────────
+function ArasakaLogo({ color = T.arasakaRed, size = 20 }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: 'block' }}>
+      <path d="M50 0L65 40H100L70 65L80 100L50 75L20 100L30 65L0 40H35L50 0Z" fill={color} />
+    </svg>
+  );
+}
 
-const BRAIN_FRAG = /* glsl */`
-  uniform float uTime;
-  uniform vec3  uColor;
-  uniform float uOpacity;
-  varying vec3 vNormal;
-  varying vec3 vWorldPos;
-  varying vec3 vViewDir;
-  float hash(vec3 p) { p = fract(p * vec3(127.1,311.7,74.7)); p += dot(p, p + 19.19); return fract(p.x*p.y*p.z); }
-  float noise(vec3 p) {
-    vec3 i = floor(p); vec3 f = fract(p); f = f*f*(3.0-2.0*f);
-    return mix(mix(mix(hash(i),hash(i+vec3(1,0,0)),f.x),mix(hash(i+vec3(0,1,0)),hash(i+vec3(1,1,0)),f.x),f.y),
-               mix(mix(hash(i+vec3(0,0,1)),hash(i+vec3(1,0,1)),f.x),mix(hash(i+vec3(0,1,1)),hash(i+vec3(1,1,1)),f.x),f.y),f.z);
-  }
-  void main() {
-    vec3 N = normalize(vNormal); vec3 V = normalize(vViewDir);
-    float fresnel = pow(1.0 - max(dot(N,V), 0.0), 2.5);
-    float n1 = noise(vWorldPos * 4.2 + uTime * 0.08);
-    float n2 = noise(vWorldPos * 9.5 - uTime * 0.05);
-    float fold = pow(n1*n2, 0.7);
-    float scan = step(0.98, fract(vWorldPos.y * 5.0 - uTime * 3.0));
-    vec3 base    = uColor * 0.1;
-    vec3 crevice = uColor * fold * 1.5;
-    vec3 rim     = uColor * fresnel * 2.0;
-    vec3 col = base + crevice + rim + (uColor * scan * 1.5);
-    float alpha = clamp(fresnel * 1.2 + fold * 0.4 + scan, 0.0, 1.0) * uOpacity;
-    gl_FragColor = vec4(col, alpha);
-  }
-`;
-
-const WIRE_FRAG = /* glsl */`
-  uniform float uTime;
-  uniform vec3  uColor;
-  varying vec3 vNormal;
-  varying vec3 vViewDir;
-  void main() {
-    vec3 N = normalize(vNormal); vec3 V = normalize(vViewDir);
-    float fresnel = pow(1.0 - max(dot(N,V), 0.0), 3.0);
-    float pulse   = 0.5 + 0.5 * sin(uTime * 3.0);
-    float alpha   = fresnel * pulse * 0.6;
-    gl_FragColor  = vec4(uColor, alpha);
-  }
-`;
-
-// ─── Matrix Rain (Canvas 2D — no WebGL cost) ──────────────────────────────────
+// ─── Matrix Digital Rain (Arasaka Overload Edition) ──────────────────────────
 function MatrixRain() {
   const canvasRef = useRef(null);
   useEffect(() => {
     const cvs = canvasRef.current;
+    if (!cvs) return;
     const ctx = cvs.getContext('2d');
-    const resize = () => { cvs.width = cvs.parentElement.clientWidth; cvs.height = cvs.parentElement.clientHeight; };
+    const resize = () => {
+      cvs.width = cvs.parentElement.clientWidth;
+      cvs.height = cvs.parentElement.clientHeight;
+    };
     window.addEventListener('resize', resize); resize();
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%^&*アァカサタナハマヤャラワガザダバパイィキシチニヒミリヂビピ'.split('');
+
+    // Multi-Language Matrix: Katakana + Sanskrit + Hebrew + Danish + Latin
+    const chars = (
+      'ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎﾏﾐﾑﾒﾓﾔﾕﾖﾗﾘﾙﾚﾛﾜﾝ' + // Katakana
+      'अआइईउऊऋएऐओऔकखगघङचछजझञटठडढणतथदधनपफबभमयरलवशषसह' + // Sanskrit
+      'אבגדהוזחטיכלמנסעפצקרשת' + // Hebrew
+      'ÆØÅ' + // Danish
+      '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ' // Latin
+    ).split('');
+
     const fontSize = 14;
-    const columns = Math.floor(cvs.width / fontSize) + 1;
-    const drops = Array(columns).fill(1);
-    const id = setInterval(() => {
+    const columns = Math.floor(cvs.width / (fontSize * 0.45)) + 1;
+    const drops = Array(columns).fill(1).map(() => Math.random() * -150);
+
+    const draw = () => {
       ctx.fillStyle = 'rgba(0,0,0,0.08)';
       ctx.fillRect(0, 0, cvs.width, cvs.height);
-      ctx.font = `${fontSize}px "Share Tech Mono"`;
+      ctx.font = `bold ${fontSize}px "Share Tech Mono"`;
+
       for (let i = 0; i < drops.length; i++) {
-        ctx.fillStyle = Math.random() > 0.95 ? '#ffffff' : '#FF003C';
-        ctx.fillText(chars[Math.floor(Math.random() * chars.length)], i * fontSize, drops[i] * fontSize);
-        if (drops[i] * fontSize > cvs.height && Math.random() > 0.975) drops[i] = 0;
-        drops[i]++;
+        if (Math.random() > 0.6) {
+          const char = chars[Math.floor(Math.random() * chars.length)];
+          const x = i * (fontSize * 0.45);
+          const y = drops[i] * fontSize;
+
+          const gradient = ctx.createLinearGradient(x, y - 80, x, y);
+          gradient.addColorStop(0, T.darkCrimson);
+          gradient.addColorStop(0.5, T.arasakaRed);
+          gradient.addColorStop(1, T.arasakaRed);
+
+          ctx.fillStyle = Math.random() > 0.99 ? '#ffffff' : gradient;
+          ctx.fillText(char, x, y);
+
+          if (y > cvs.height && Math.random() > 0.985) drops[i] = 0;
+          drops[i] += 1.2;
+        }
       }
-    }, 50);
+    };
+
+    const id = setInterval(draw, 35); // Slightly slower to let characters be read
     return () => { window.removeEventListener('resize', resize); clearInterval(id); };
   }, []);
-  return <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none', opacity: 0.8 }} />;
+
+  return <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, zIndex: 0, opacity: 1.0, pointerEvents: 'none', background: '#000' }} />;
 }
 
-// ─── Tethered Node (Html overlay — disabled on LOW tier) ─────────────────────
-function TetheredNode({ node, isActive, isMobileSize }) {
-  const [glitchLabel, setGlitchLabel] = useState(node.label);
+// ─── Internal Wireframe Icons (High Performance) ─────────────────────────────
+const Icons = {
+  FRONTEND: ({ size, color }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+      <line x1="3" y1="9" x2="21" y2="9" />
+      <line x1="9" y1="21" x2="9" y2="9" />
+    </svg>
+  ),
+  BACKEND: ({ size, color }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="2" width="20" height="8" rx="2" ry="2" />
+      <rect x="2" y="14" width="20" height="8" rx="2" ry="2" />
+      <line x1="6" y1="6" x2="6.01" y2="6" />
+      <line x1="6" y1="18" x2="6.01" y2="18" />
+    </svg>
+  ),
+  DATABASE: ({ size, color }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <ellipse cx="12" cy="5" rx="9" ry="3" />
+      <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
+      <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+    </svg>
+  ),
+  SYSTEMS: ({ size, color }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="4" y="4" width="16" height="16" rx="2" />
+      <rect x="9" y="9" width="6" height="6" />
+      <line x1="9" y1="1" x2="9" y2="4" />
+      <line x1="15" y1="1" x2="15" y2="4" />
+      <line x1="9" y1="20" x2="9" y2="23" />
+      <line x1="15" y1="20" x2="15" y2="23" />
+      <line x1="20" y1="9" x2="23" y2="9" />
+      <line x1="20" y1="15" x2="23" y2="15" />
+      <line x1="1" y1="9" x2="4" y2="9" />
+      <line x1="1" y1="15" x2="4" y2="15" />
+    </svg>
+  ),
+  AI: ({ size, color }) => (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2a10 10 0 0 0-10 10 10 10 0 0 0 10 10 10 10 0 0 0 10-10A10 10 0 0 0 12 2z" />
+      <path d="M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8z" />
+      <line x1="12" y1="8" x2="12" y2="2" />
+      <line x1="12" y1="22" x2="12" y2="16" />
+      <line x1="8" y1="12" x2="2" y2="12" />
+      <line x1="22" y1="12" x2="16" y2="12" />
+    </svg>
+  ),
+};
 
-  useEffect(() => {
-    if (isActive) {
-      const chars = '!<>-_\\\\/[]{}—=+*^?#_';
-      let iter = 0;
-      const intv = setInterval(() => {
-        setGlitchLabel(node.label.split('').map((c, i) => i < iter ? c : chars[Math.floor(Math.random() * chars.length)]).join(''));
-        if (iter >= node.label.length) clearInterval(intv);
-        iter += 1 / 3;
-      }, 30);
-      return () => clearInterval(intv);
-    } else { setGlitchLabel(node.label); }
-  }, [isActive, node.label]);
-  const isRight = node.pos[0] >= 0;
-  const signX = isRight ? 1 : -1;
-  const signY = node.pos[1] >= 0 ? 1 : -1;
+// ─── Ambient Floating Data Tag (3D Node Label) ──────────────────────────────
+const ICON_MAP = {
+  FRONTEND: Icons.FRONTEND,
+  BACKEND: Icons.BACKEND,
+  DATABASE: Icons.DATABASE,
+  SYSTEMS: Icons.SYSTEMS,
+  AI: Icons.AI,
+};
 
-  // Responsive tether distances
-  const elbowX = isMobileSize ? 0.25 : 0.4;
-  const cardScale = isMobileSize ? 0.45 : 1;
-  const cardX = isMobileSize ? 0.5 : 0.9;
-  const tetherY = isMobileSize ? 0.15 : 0.3;
+function AmbientTag({ region, activeId, onClick }) {
+  const Icon = ICON_MAP[region.id] || Icons.FRONTEND;
+  const isVisible = !activeId;
 
-  const ptBrain = useMemo(() => new THREE.Vector3(0, 0, 0), []);
-  const ptElbow = useMemo(() => new THREE.Vector3(signX * elbowX, signY * tetherY, 0), [signX, elbowX, signY, tetherY]);
-  const ptCard = useMemo(() => new THREE.Vector3(signX * cardX, signY * tetherY, 0), [signX, cardX, signY, tetherY]);
+  // Circuit line geometry: Surface -> Elbow -> Card
+  const { linePoints, elevatedPos } = useMemo(() => {
+    const surfacePos = new THREE.Vector3(...region.pos);
+    const normal = surfacePos.clone().normalize();
+    // Move closer to the surface for shorter lines
+    const elevated = surfacePos.clone().add(normal.clone().multiplyScalar(0.35));
 
-  const lineGeo = useMemo(() => new THREE.BufferGeometry().setFromPoints([ptBrain, ptElbow, ptCard]), [ptBrain, ptElbow, ptCard]);
-  const ringRot = useMemo(() => {
-    const normal = new THREE.Vector3(...node.pos).normalize();
-    const q = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 0, 1), normal);
-    return new THREE.Euler().setFromQuaternion(q);
-  }, [node.pos]);
-  const dotRef = useRef(), ringRef = useRef(), innerRef = useRef();
-  useFrame(({ clock }) => {
-    if (!node.priority) return;
-    const t = clock.elapsedTime;
-    const pulse = Math.sin(t * 15.0) * 0.2 + 0.8;
-    if (dotRef.current) dotRef.current.scale.setScalar(pulse);
-    if (ringRef.current) ringRef.current.scale.setScalar(pulse * 1.5);
-    if (innerRef.current) innerRef.current.opacity = 0.4 + Math.sin(t * 15.0) * 0.4;
-  });
-  const nodeColor = isActive ? T.cyan : (node.priority ? T.yellow : T.neonRed);
+    // Create a tighter elbow point
+    const ortho = new THREE.Vector3(0, 1, 0).cross(normal).normalize();
+    if (ortho.length() < 0.1) ortho.set(1, 0, 0).cross(normal).normalize();
+    const elbow = surfacePos.clone().add(normal.clone().multiplyScalar(0.15)).add(ortho.clone().multiplyScalar(0.12));
+
+    return {
+      linePoints: [surfacePos, elbow, elevated],
+      elevatedPos: elevated,
+    };
+  }, [region.pos]);
 
   return (
-    <group position={node.pos}>
-      <line geometry={lineGeo}>
-        <lineBasicMaterial color={nodeColor} linewidth={2} />
-      </line>
-      <mesh rotation={ringRot} ref={ringRef}>
-        <ringGeometry args={[0.025, 0.045, 24]} />
-        <meshBasicMaterial color={nodeColor} side={THREE.DoubleSide} transparent />
-      </mesh>
-      <mesh rotation={ringRot}>
-        <circleGeometry args={[0.015, 12]} />
-        <meshBasicMaterial ref={innerRef} color={nodeColor} transparent />
-      </mesh>
-      <mesh position={ptElbow} ref={dotRef}>
-        <sphereGeometry args={[0.015, 8, 8]} />
-        <meshBasicMaterial color={nodeColor} />
-      </mesh>
-      <Html position={ptCard} center style={{ pointerEvents: 'none', zIndex: isActive ? 100 : 1 }} zIndexRange={[100, 0]}>
-        <div style={{
-          display: 'flex', alignItems: 'center',
-          flexDirection: isRight ? 'row' : 'row-reverse',
-          transition: 'all 0.6s cubic-bezier(0.16,1,0.3,1)',
-          opacity: isActive ? 1 : 0.5,
-          filter: isActive ? `drop-shadow(0 0 20px ${T.cyan})` : 'none',
-          transform: isMobileSize 
-            ? `scale(${isActive ? 1.2 * cardScale : 0.8 * cardScale})` 
-            : `scale(${isActive ? 1.5 : 1.0})`,
-        }}>
-          <div style={{ 
-            background: 'rgba(0,0,0,0.95)', 
-            border: `1px solid ${isActive ? T.cyan : T.neonRed}aa`, 
-            padding: isActive ? '12px 20px' : '8px 12px', 
-            minWidth: isMobileSize ? '110px' : (isActive ? '220px' : '160px'), 
-            clipPath: 'polygon(0 0, calc(100% - 15px) 0, 100% 15px, 100% 100%, 0 100%)', 
-            position: 'relative',
-            boxShadow: isActive ? `0 0 30px ${T.cyan}33` : 'none',
-            transition: 'all 0.4s ease'
-          }}>
-            {isActive && <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '3px', background: T.cyan, boxShadow: `0 0 15px ${T.cyan}` }} />}
-            <div style={{ 
-              fontFamily: '"Share Tech Mono", monospace', 
-              fontSize: isActive ? '14px' : '12px', 
-              color: isActive ? T.cyan : T.neonRed, 
-              letterSpacing: '0.15em', 
-              fontWeight: 'bold', 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '8px' 
-            }}>
-              <div style={{ width: '6px', height: '6px', background: 'currentColor', borderRadius: '50%', boxShadow: isActive ? `0 0 10px currentColor` : 'none' }} />
-              {glitchLabel}
-            </div>
-            <div style={{ fontFamily: '"Space Mono", monospace', fontSize: isActive ? '11px' : '9px', color: '#aaa', marginTop: '4px', marginBottom: '8px' }}>[{node.sub}]</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-              <span style={{ 
-                fontFamily: '"Orbitron", monospace', 
-                fontSize: isActive ? '24px' : '18px', 
-                color: T.yellow, 
-                fontWeight: '900', 
-                textShadow: `0 0 12px ${T.yellow}88` 
-              }}>{node.value}%</span>
-              <div style={{ flex: 1, height: isActive ? '5px' : '3px', background: '#222' }}>
-                <div style={{ width: `${node.value}%`, height: '100%', background: isActive ? T.cyan : T.neonRed, transition: 'width 1.2s ease-out' }} />
-              </div>
-            </div>
-            {isActive && (
-              <div style={{ 
-                marginTop: '12px', 
-                paddingTop: '8px', 
-                borderTop: '1px solid #ffffff11', 
-                fontSize: '9px', 
-                color: T.cyan, 
-                fontFamily: '"Share Tech Mono"', 
-                letterSpacing: '0.1em' 
-              }}>
-                [ PRIORITY ACCESS GRANTED ] // DATA_STREAM_ACTIVE
-              </div>
-            )}
+    <group>
+      {/* 3D Glowing Line Tether (Circuit Style) */}
+      {isVisible && (
+        <Line
+          points={linePoints}
+          color={T.arasakaRed}
+          lineWidth={1.2}
+          transparent
+          opacity={0.3}
+        />
+      )}
+
+      <Html
+        position={elevatedPos}
+        center
+        distanceFactor={4}
+        style={{
+          transition: 'all 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
+          opacity: isVisible ? 1 : 0,
+          pointerEvents: isVisible ? 'auto' : 'none',
+          transform: `scale(${isVisible ? 1 : 0.5})`,
+        }}
+      >
+        <div
+          onClick={() => isVisible && onClick(region.id)}
+          className="flex items-center gap-1.5 px-2.5 py-1.5 bg-black/90 border border-red-600/60 backdrop-blur-xl cursor-pointer group hover:bg-red-600/30 transition-all duration-300"
+          style={{
+            boxShadow: `0 0 20px ${T.arasakaRed}33`,
+            clipPath: 'polygon(0 0, 100% 0, 100% 70%, 90% 100%, 0 100%)',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {/* Scanning Animation Accent */}
+          <div className="absolute top-0 left-0 w-0.5 h-full bg-red-600 animate-pulse opacity-40" />
+
+          <div className="p-1 bg-red-600/20 group-hover:bg-red-600/40 transition-colors rounded-sm">
+            <Icon size={11} color={T.arasakaRed} />
           </div>
+
+          <div className="flex flex-col">
+            <span className="text-[8.5px] font-black uppercase tracking-[0.15em] text-white font-['Orbitron']">
+              {region.id}
+            </span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[5px] font-mono text-red-500/80 leading-none">
+                SYNC_ACTIVE
+              </span>
+              <div className="w-1 h-1 rounded-full bg-red-600 animate-ping" />
+            </div>
+          </div>
+
+          {/* Decorative Corner */}
+          <div className="absolute top-0 right-0 w-1.5 h-1.5 border-t border-r border-red-500" />
         </div>
       </Html>
     </group>
   );
 }
 
-// ─── Brain Mesh — tier-adaptive materials ─────────────────────────────────────
-function CyberBrain({ activeRegionId, tier, config, isMobile }) {
-  // Draco flag = true → Drei auto-configures DRACOLoader from CDN
+// ─── CyberBrain (Arasaka Red Elite) ──────────────────────────────────────────
+function CyberBrain({ activeId, onNodesUpdate, onNodeClick }) {
   const { scene } = useGLTF('/brain.glb', true);
+  const { camera, size } = useThree();
   const groupRef = useRef();
 
   const brainGeo = useMemo(() => {
@@ -285,325 +278,341 @@ function CyberBrain({ activeRegionId, tier, config, isMobile }) {
     const box = merged.boundingBox;
     const centre = new THREE.Vector3(); box.getCenter(centre);
     merged.translate(-centre.x, -centre.y, -centre.z);
-    const size = new THREE.Vector3(); box.getSize(size);
-    const brainScale = isMobile ? (activeRegionId ? 1.2 : 1.0) : 2.4;
-    const scale = brainScale / Math.max(size.x, size.y, size.z);
-    merged.scale(scale, scale, scale);
+    const s = 2.6 / Math.max(box.getSize(new THREE.Vector3()).x);
+    merged.scale(s, s, s);
     return merged;
-  }, [scene, isMobile, activeRegionId]);
+  }, [scene]);
 
-  // HIGH / MEDIUM: Full GLSL holographic shader
-  const uniforms = useMemo(() => ({ uTime: { value: 0 }, uColor: { value: T.redV.clone() }, uOpacity: { value: 0.9 } }), []);
-  const wireUniforms = useMemo(() => ({ uTime: { value: 0 }, uColor: { value: T.redV.clone() } }), []);
-  const holoMat = useMemo(() => new THREE.ShaderMaterial({ vertexShader: BRAIN_VERT, fragmentShader: BRAIN_FRAG, uniforms, transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending }), [uniforms]);
-  const wireMat = useMemo(() => new THREE.ShaderMaterial({ vertexShader: BRAIN_VERT, fragmentShader: WIRE_FRAG, uniforms: wireUniforms, transparent: true, depthWrite: false, wireframe: true, blending: THREE.AdditiveBlending }), [wireUniforms]);
-
-  // LOW: meshBasicMaterial — pre-baked neon look, 0 shader cost
-  const basicMat = useMemo(() => new THREE.MeshBasicMaterial({
-    color: new THREE.Color(T.neonRed),
-    wireframe: false,
-    transparent: true,
-    opacity: 0.85,
-    side: THREE.DoubleSide,
-  }), []);
-  const basicWireMat = useMemo(() => new THREE.MeshBasicMaterial({
-    color: new THREE.Color('#330010'),
-    wireframe: true,
-    transparent: true,
-    opacity: 0.3,
+  const uniforms = useMemo(() => ({
+    uTime: { value: 0 },
+    uColor: { value: T.redV.clone() },
+    uOpacity: { value: 0.95 }
   }), []);
 
-  // Final material selection
-  const isLow = tier === 'low';
-  const primaryMat = isLow ? basicMat : holoMat;
-  const secondaryMat = isLow ? basicWireMat : (config.brainWireframe ? wireMat : null);
+  const pointLightRef = useRef();
 
-  useFrame(({ clock }, delta) => {
-    if (!isLow) {
-      uniforms.uTime.value = clock.elapsedTime;
-      wireUniforms.uTime.value = clock.elapsedTime;
+  useEffect(() => {
+    if (!groupRef.current) return;
+    if (activeId) {
+      const target = REGIONS[activeId].rot;
+      gsap.to(groupRef.current.rotation, { x: target[0], y: target[1], z: target[2], duration: 1.6, ease: "power4.inOut" });
+      gsap.to(groupRef.current.position, { x: 0, y: 0, duration: 1.6, ease: "power4.inOut" });
     }
-    if (groupRef.current) {
-      if (activeRegionId) {
-        const targetRot = REGIONS[activeRegionId].rot;
-        groupRef.current.rotation.x = THREE.MathUtils.lerp(groupRef.current.rotation.x, targetRot[0], delta * 3.0);
-        groupRef.current.rotation.y = THREE.MathUtils.lerp(groupRef.current.rotation.y, targetRot[1], delta * 3.0);
-        groupRef.current.rotation.z = THREE.MathUtils.lerp(groupRef.current.rotation.z, targetRot[2], delta * 3.0);
-        groupRef.current.position.y = THREE.MathUtils.lerp(groupRef.current.position.y, 0, delta * 2.0);
-      } else {
-        groupRef.current.rotation.y += delta * 0.2;
-        groupRef.current.rotation.x = THREE.MathUtils.lerp(groupRef.current.rotation.x, 0, delta);
-        groupRef.current.rotation.z = THREE.MathUtils.lerp(groupRef.current.rotation.z, 0, delta);
-        groupRef.current.position.y = Math.sin(clock.elapsedTime * 0.5) * 0.1;
-      }
+  }, [activeId]);
+
+  useFrame(({ clock }) => {
+    uniforms.uTime.value = clock.elapsedTime;
+
+    // Rotation logic: Only rotate if nothing is selected
+    if (groupRef.current && !activeId) {
+      groupRef.current.rotation.y += 0.008; // Faster idle rotation
+      groupRef.current.rotation.x = Math.sin(clock.elapsedTime * 0.3) * 0.08;
+      groupRef.current.position.y = Math.sin(clock.elapsedTime * 0.6) * 0.15;
+    }
+
+    if (onNodesUpdate && groupRef.current) {
+      const updates = {};
+      Object.keys(REGIONS).forEach(id => {
+        const node = REGIONS[id];
+        const worldPos = new THREE.Vector3(...node.pos).applyEuler(groupRef.current.rotation).add(groupRef.current.position);
+        const screenPos = worldPos.clone().project(camera);
+        updates[id] = {
+          x: (screenPos.x * 0.5 + 0.5) * size.width,
+          y: (-(screenPos.y * 0.5) + 0.5) * size.height,
+          z: screenPos.z // Depth info to hide back-facing labels
+        };
+
+        if (activeId === id && pointLightRef.current) {
+          pointLightRef.current.position.copy(worldPos);
+        }
+      });
+      onNodesUpdate(updates);
     }
   });
 
-  if (!brainGeo) return null;
-
   return (
     <group ref={groupRef}>
-      <mesh geometry={brainGeo} material={primaryMat} />
-      {secondaryMat && <mesh geometry={brainGeo} material={secondaryMat} />}
-
-      {/* Inner core glow */}
-      <mesh geometry={brainGeo} scale={[0.85, 0.85, 0.85]}>
-        <meshBasicMaterial color={T.neonRed} transparent opacity={isLow ? 0.05 : 0.1} side={THREE.BackSide} blending={THREE.AdditiveBlending} depthWrite={false} />
+      <mesh geometry={brainGeo}>
+        <shaderMaterial
+          transparent depthWrite={false} blending={THREE.AdditiveBlending}
+          uniforms={uniforms}
+          vertexShader={`
+            varying vec3 vNormal; varying vec3 vWorldPos;
+            void main() {
+              vNormal = normalize(normalMatrix * normal);
+              vWorldPos = (modelMatrix * vec4(position, 1.0)).xyz;
+              gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+          `}
+          fragmentShader={`
+            uniform float uTime; uniform vec3 uColor; uniform float uOpacity;
+            varying vec3 vNormal; varying vec3 vWorldPos;
+            void main() {
+              float fresnel = pow(1.2 - max(dot(normalize(vNormal), vec3(0,0,1)), 0.0), 3.5);
+              float scan = step(0.975, fract(vWorldPos.y * 15.0 - uTime * 3.5));
+              gl_FragColor = vec4(uColor * (fresnel * 2.8 + scan * 2.0), (fresnel + scan) * uOpacity);
+            }
+          `}
+        />
       </mesh>
 
-      {/* Tethered HTML nodes — Only show all nodes during idle, focus single node when active */}
-      {config.brainTetheredNodes && Object.values(REGIONS)
-        .filter(r => !activeRegionId || r.id === activeRegionId)
-        .map(r => (
-          <TetheredNode key={r.id} node={r} isActive={activeRegionId === r.id} isMobileSize={isMobile} />
-        ))}
+      {/* Ambient Data Tags - Only active during Idle */}
+      {Object.values(REGIONS).map(r => (
+        <AmbientTag
+          key={`tag-${r.id}`}
+          region={r}
+          activeId={activeId}
+          onClick={onNodeClick}
+        />
+      ))}
+
+      {/* Surface Nodes */}
+      {Object.values(REGIONS).map(r => (
+        <mesh key={r.id} position={r.pos}>
+          <sphereGeometry args={[0.03, 24, 24]} />
+          <meshBasicMaterial color={activeId === r.id ? T.neonOrange : T.arasakaRed} />
+          {activeId === r.id && (
+            <mesh scale={[1.8, 1.8, 1.8]}>
+              <ringGeometry args={[0.035, 0.045, 32]} />
+              <meshBasicMaterial color={T.neonOrange} transparent opacity={0.6} side={THREE.DoubleSide} />
+            </mesh>
+          )}
+        </mesh>
+      ))}
+
+      {activeId && (
+        <pointLight ref={pointLightRef} distance={2} intensity={4} color={T.arasakaRed} />
+      )}
     </group>
   );
 }
 
-// ─── Atmosphere — tier-adaptive lights & stars ────────────────────────────────
-function Atmosphere({ isMobile, perfDown, tier, config }) {
-  const starCount = perfDown ? Math.min(config.starCount, 800) : config.starCount;
+// ─── SVG Overlay (Global Scanning & Active Tether) ───────────────────────────
+function SVGOverlay({ activeId, nodesData, cardAnchor }) {
+  if (!nodesData) return null;
+
   return (
-    <>
-      <ambientLight intensity={0.2} />
-      {/* Lights: HIGH=2, MEDIUM=1, LOW=0 */}
-      {config.brainLights >= 1 && (
-        <pointLight position={[0, 4, 0]} intensity={4.0} color={T.neonRed} distance={15} decay={2} />
+    <svg style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', zIndex: 20, pointerEvents: 'none' }}>
+      <defs>
+        <filter id="arasakaGlow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="6" result="blur" />
+          <feFlood floodColor={T.arasakaRed} result="color" />
+          <feComposite in="color" in2="blur" operator="in" result="glow" />
+          <feMerge><feMergeNode in="glow" /><feMergeNode in="SourceGraphic" /></feMerge>
+        </filter>
+      </defs>
+
+      {/* Active Tether */}
+      {activeId && nodesData[activeId] && cardAnchor && (
+        <polyline
+          points={`${nodesData[activeId].x},${nodesData[activeId].y} ${nodesData[activeId].x + (cardAnchor.x > nodesData[activeId].x ? 80 : -80)},${nodesData[activeId].y} ${nodesData[activeId].x + (cardAnchor.x > nodesData[activeId].x ? 80 : -80)},${cardAnchor.y} ${cardAnchor.x},${cardAnchor.y}`}
+          fill="none" stroke={T.arasakaRed} strokeWidth="2.5"
+          strokeDasharray="15,8" filter="url(#arasakaGlow)" style={{ opacity: 0.95 }}
+        >
+          <animate attributeName="stroke-dashoffset" from="100" to="0" dur="2.5s" repeatCount="indefinite" />
+        </polyline>
       )}
-      {config.brainLights >= 2 && (
-        <pointLight position={[-4, -2, 3]} intensity={2.0} color={T.cyan} distance={10} decay={2} />
-      )}
-      {starCount > 0 && (
-        <Stars radius={100} depth={50} count={starCount} factor={3} saturation={config.starSaturation} fade speed={0.5} />
-      )}
-      {config.useFog && <fog attach="fog" args={['#000', 5, 25]} />}
-    </>
+    </svg>
   );
 }
 
-// ─── Loader Fallback ──────────────────────────────────────────────────────────
-function BrainLoader() {
-  return (
-    <Html center>
-      <div style={{ fontFamily: '"Share Tech Mono", monospace', color: T.neonRed, textAlign: 'center', background: '#000', padding: '10px', border: `1px solid ${T.neonRed}` }}>
-        [ INITIALIZING CORTICAL STACK ]<br />
-        <span style={{ fontSize: '10px', opacity: 0.5 }}>LOADING brain.glb (DRACO) // STANDBY</span>
-      </div>
-    </Html>
-  );
-}
-
-// ─── 30 FPS Cap Controller ────────────────────────────────────────────────────
-function FrameCapController({ frameCapMs }) {
-  const lastTime = useRef(0);
-  const { invalidate } = useThree();
-  useFrame(() => {
-    if (!frameCapMs) return;
-    const now = performance.now();
-    if (now - lastTime.current >= frameCapMs) {
-      lastTime.current = now;
-      invalidate();
-    }
-  });
-  return null;
-}
-
-export default function NeuralMind() {
-  const { tier, config, onCanvasCreated, reportFPS } = useQuality();
-  const [activeRegion, setActiveRegion] = useState(null);
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-  const [perfDown, setPerfDown] = useState(false);
-  const [isLocked, setIsLocked] = useState(window.innerWidth >= 768);
-  const lastTap = useRef(0);
-  const { playHover, playRot, playClick } = useCyberAudio();
-  
-  const handleInteractionToggle = useCallback((e) => {
-    if (!isMobile) return; // Desktop is always unlocked
-    const now = Date.now();
-    const DOUBLE_TAP_DELAY = 300;
-    if (now - lastTap.current < DOUBLE_TAP_DELAY) {
-      setIsLocked(prev => !prev);
-    }
-    lastTap.current = now;
-  }, [isMobile]);
-
-  // FPS buffer for watchdog
-  const fpsBuffer = useRef([]);
+// ─── HUD Skill Card (Arasaka Corporation Card) ──────────────────────────────
+function HUDCard({ activeId, onAnchorUpdate }) {
+  const cardRef = useRef();
+  const node = REGIONS[activeId];
 
   useEffect(() => {
-    const check = () => {
-      const mobile = window.innerWidth < 768;
-      setIsMobile(mobile);
-      if (!mobile) setIsLocked(true); // Auto-unlock when switching to desktop
+    const update = () => {
+      if (cardRef.current && node) {
+        const rect = cardRef.current.getBoundingClientRect();
+        const pRect = cardRef.current.parentElement.getBoundingClientRect();
+        const x = node.side === 'right' ? (rect.left - pRect.left) : (rect.right - pRect.left);
+        const y = (rect.top - pRect.top) + rect.height / 2;
+        onAnchorUpdate({ x, y });
+      }
     };
+    update();
+    const obs = new ResizeObserver(update);
+    if (cardRef.current) obs.observe(cardRef.current);
+    window.addEventListener('resize', update);
+    return () => { obs.disconnect(); window.removeEventListener('resize', update); };
+  }, [activeId, node, onAnchorUpdate]);
+
+  if (!node) return null;
+  const isRight = node.side === 'right';
+
+  return (
+    <div
+      ref={cardRef}
+      className={`absolute top-1/2 -translate-y-1/2 ${isRight ? 'right-16' : 'left-16'} z-50 w-64 p-0 transition-all duration-500`}
+      style={{
+        boxShadow: `0 0 40px ${T.arasakaRed}11`,
+        animation: `cardEnter${isRight ? 'Right' : 'Left'} 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards`
+      }}
+    >
+      {/* Top Header Bar */}
+      <div className="flex items-center justify-between px-3 py-1.5 bg-red-600 text-black font-black uppercase text-[9px] tracking-tighter"
+        style={{ clipPath: 'polygon(0 0, 100% 0, 100% 70%, 95% 100%, 0 100%)' }}>
+        <div className="flex items-center gap-1.5">
+          <ArasakaLogo color="#000" size={10} />
+          <span>ARASAKA CORP // 荒坂企業</span>
+        </div>
+        <div className="opacity-70">L-07</div>
+      </div>
+
+      {/* Main Content Body */}
+      <div className="bg-black/95 backdrop-blur-2xl border-l-[4px] border-red-600 p-4"
+        style={{ border: `1px solid ${T.arasakaRed}33`, borderLeft: `4px solid ${T.arasakaRed}` }}>
+        <div className="flex justify-between items-start mb-3">
+          <div>
+            <div className="text-[8px] font-mono tracking-[3px] opacity-40 mb-1" style={{ color: T.white }}>// ENGRAM</div>
+            <h2 className="text-2xl font-black uppercase italic leading-none" style={{ fontFamily: '"Orbitron"', color: '#fff' }}>{node.label}</h2>
+          </div>
+          <div className="text-[8px] font-mono text-right opacity-30" style={{ color: T.white }}>
+            ASN-{Math.floor(Math.random() * 899 + 100)}<br />
+            SEC-07
+          </div>
+        </div>
+
+        <div className="text-[10px] font-mono mb-5 p-1 bg-red-600/10 w-fit" style={{ color: T.neonOrange }}>
+          &gt; {node.sub}
+        </div>
+
+        <div className="space-y-4">
+          <div className="bg-white/5 p-3 border-r-2 border-white/10">
+            <div className="flex justify-between text-[9px] font-bold mb-2 uppercase tracking-widest">
+              <span style={{ color: '#888' }}>Synaptic_Load</span>
+              <span style={{ color: T.neonOrange }}>{node.value}%</span>
+            </div>
+            <div className="h-2 bg-red-950/20 relative" style={{ outline: '1px solid rgba(255,255,255,0.05)' }}>
+              <div className="h-full transition-all duration-2000 ease-in-out" style={{ width: `${node.value}%`, background: T.arasakaRed, boxShadow: `0 0 15px ${T.arasakaRed}88` }} />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 text-[8px] font-mono" style={{ color: T.arasakaRed }}>
+            <div className="bg-white/5 p-1.5">
+              <span className="opacity-40">INTEGRITY:</span> 1.0<br />
+              <span className="opacity-40">LATENCY:</span> 0.0ms
+            </div>
+            <div className="bg-white/5 p-1.5">
+              <span className="opacity-40">BUFFER:</span> 100%<br />
+              <span className="opacity-40">STREAM:</span> OK
+            </div>
+          </div>
+        </div>
+
+        {/* Hazard Stripes Bottom */}
+        <div className="mt-6 h-2 w-full" style={{ background: 'repeating-linear-gradient(45deg, #ff2a42, #ff2a42 8px, #000 8px, #000 16px)', opacity: 0.4 }} />
+      </div>
+
+      <style>{`
+        @keyframes cardEnterRight { 
+          from { transform: translate(100px, -50%); opacity: 0; filter: blur(10px); } 
+          to { transform: translate(0, -50%); opacity: 1; filter: blur(0); } 
+        }
+        @keyframes cardEnterLeft { 
+          from { transform: translate(-100px, -50%); opacity: 0; filter: blur(10px); } 
+          to { transform: translate(0, -50%); opacity: 1; filter: blur(0); } 
+        }
+      `}</style>
+    </div>
+  );
+}
+
+// ─── Main NeuralMind Component ──────────────────────────────────────────────
+export default function NeuralMind() {
+  const { onCanvasCreated } = useQuality();
+  const [activeId, setActiveId] = useState(null);
+  const [nodesData, setNodesData] = useState({});
+  const [cardAnchor, setCardAnchor] = useState(null);
+  const { playClick, playHover, playRot } = useCyberAudio();
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 1024);
     window.addEventListener('resize', check);
     return () => window.removeEventListener('resize', check);
   }, []);
 
+  const handleToggle = (id) => {
+    if (activeId === id) setActiveId(null);
+    else {
+      setActiveId(id);
+      playClick();
+      playRot();
+    }
+  };
+
   return (
-    <>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Share+Tech+Mono&family=Space+Mono&display=swap');
-      `}</style>
+    <div className="relative w-full overflow-hidden bg-black" style={{ height: isMobile ? '500px' : '900px' }}>
+      <MatrixRain />
 
-      <div style={{
-        position: 'relative', width: '100%',
-        height: isMobile ? '500px' : '800px',
-        background: '#000', overflow: 'hidden',
-        border: `2px solid ${T.neonRed}`,
-        boxShadow: `0 0 30px ${T.neonRed}44`,
-      }}>
-        {/* Background Matrix Rain — Canvas 2D, no WebGL overhead */}
-        <MatrixRain />
+      {/* Scanline & Vignette Overlay */}
+      <div className="absolute inset-0 z-10 pointer-events-none opacity-40"
+        style={{ background: 'repeating-linear-gradient(0deg, transparent, transparent 2px, #000 2px, #000 4px), radial-gradient(circle, transparent 30%, #000 100%)' }} />
 
-        {/* Scanlines overlay */}
-        <div style={{ position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none', background: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.15) 2px, rgba(0,0,0,0.15) 4px)' }} />
+      <SVGOverlay activeId={activeId} nodesData={nodesData} cardAnchor={cardAnchor} />
+      <HUDCard activeId={activeId} onAnchorUpdate={setCardAnchor} />
 
-        {/* HUD Header */}
-        <div style={{ position: 'absolute', top: 20, left: 20, zIndex: 10, fontFamily: '"Share Tech Mono", monospace', color: T.neonRed, textShadow: `0 0 8px ${T.neonRed}` }}>
-          <div style={{ fontSize: isMobile ? '12px' : '18px', fontWeight: 'bold' }}>NEURAL ENGRAM CORE v3.0</div>
-          <div style={{ fontSize: isMobile ? '8px' : '10px', opacity: 0.7, marginTop: '2px' }}>
-            STATUS: {activeRegion ? `TARGET LOCKED [ ${activeRegion} ]` : 'IDLE // AWAITING COMMAND'}
-          </div>
-          {/* Tier indicator inside NeuralMind HUD */}
-          <div style={{ fontSize: '8px', opacity: 0.5, marginTop: '2px', letterSpacing: '0.1em' }}>
-            RENDER_TIER: {tier.toUpperCase()}
-          </div>
+      {/* Header HUD */}
+      <div className="absolute top-12 left-12 z-20 font-mono text-red-600">
+        <div className="text-3xl font-black tracking-tighter uppercase italic leading-none">Neural_Engram_Core</div>
+        <div className="text-[12px] font-bold mt-3 flex items-center gap-3">
+          <span className="w-5 h-[3px] bg-red-600 animate-pulse" />
+          {activeId ? (
+            <span className="text-white">STATUS: TARGET_LOCKED [ {activeId} ]</span>
+          ) : (
+            <span className="opacity-60">STATUS: GLOBAL_SEQUENTIAL_SCAN_ACTIVE</span>
+          )}
         </div>
-
-        {/* Global Interaction Hint — Only on Mobile */}
-        {isMobile && (
-          <div style={{
-            position: 'absolute',
-            top: isMobile ? '25%' : '20%',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            zIndex: 100,
-            pointerEvents: 'none',
-            fontFamily: "'Orbitron', sans-serif",
-            textAlign: 'center',
-            background: 'rgba(0, 0, 0, 0.7)',
-            padding: '8px 16px',
-            border: `1px solid ${isLocked ? T.cyan : T.yellow}`,
-            color: isLocked ? T.cyan : T.yellow,
-            fontSize: isMobile ? '9px' : '11px',
-            letterSpacing: '0.25em',
-            textShadow: `0 0 8px ${isLocked ? T.cyan : T.yellow}`,
-            clipPath: 'polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px)',
-            animation: isLocked ? 'none' : 'pulseBio 2s infinite',
-            opacity: 0.8
-          }}>
-            {isLocked 
-              ? `NEURAL_BRIDGE ACTIVE [ TAP x2 TO LOCK ]` 
-              : `NEURAL_ENGRAM_CORE [ TAP x2 TO ACCESS ]`
-            }
-          </div>
-        )}
-
-        <style>{`
-          @keyframes pulseBio {
-            0% { opacity: 0.4; transform: translateX(-50%) scale(0.95); }
-            50% { opacity: 0.9; transform: translateX(-50%) scale(1.05); }
-            100% { opacity: 0.4; transform: translateX(-50%) scale(0.95); }
-          }
-        `}</style>
-
-        {/* Interactive Nav buttons */}
-        <div style={{
-          position: 'absolute', bottom: isMobile ? 12 : 20,
-          left: 0, right: 0, zIndex: 10,
-          display: 'flex', justifyContent: 'center', flexWrap: 'wrap',
-          gap: isMobile ? '6px' : '10px', padding: '0 8px', 
-          pointerEvents: isLocked ? 'auto' : 'none',
-          opacity: isLocked ? 1 : 0.2
-        }}>
-          {Object.values(REGIONS).map(r => {
-            const isActive = activeRegion === r.id;
-            return (
-              <button
-                key={r.id}
-                onClick={() => { setActiveRegion(isActive ? null : r.id); playClick(); if (!isActive) playRot(); }}
-                onTouchStart={() => playHover()}
-                style={{
-                  pointerEvents: 'auto',
-                  background: isActive ? T.neonRed : 'rgba(0,0,0,0.6)',
-                  border: `1px solid ${T.neonRed}`,
-                  color: isActive ? '#000' : T.neonRed,
-                  padding: isMobile ? '6px 10px' : '8px 16px',
-                  fontFamily: '"Share Tech Mono", monospace',
-                  fontSize: isMobile ? '9px' : '12px',
-                  letterSpacing: '0.1em',
-                  cursor: 'pointer',
-                  clipPath: 'polygon(6px 0, 100% 0, 100% calc(100% - 6px), calc(100% - 6px) 100%, 0 100%, 0 6px)',
-                  transition: 'all 0.2s ease',
-                  boxShadow: isActive ? `0 0 15px ${T.neonRed}` : 'none',
-                  textTransform: 'uppercase',
-                }}
-                onMouseEnter={e => { playHover(); if (!isActive) e.target.style.background = 'rgba(255,0,60,0.2)'; }}
-                onMouseLeave={e => { if (!isActive) e.target.style.background = 'rgba(0,0,0,0.6)'; }}
-              >
-                [ {r.id} ]
-              </button>
-            );
-          })}
-        </div>
-
-        {/* 3D Canvas */}
-        <Canvas
-          dpr={config.dpr}
-          frameloop={config.frameCapMs ? 'demand' : 'always'}
-          camera={{ position: [0, 1.2, isMobile ? 7.5 : 5.5], fov: isMobile ? 55 : 45 }}
-          onTouchStart={handleInteractionToggle}
-          onDoubleClick={handleInteractionToggle}
-          style={{ 
-            position: 'absolute', 
-            inset: 0, 
-            zIndex: 2, 
-            touchAction: isLocked ? 'none' : 'pan-y pinch-zoom',
-            pointerEvents: isLocked ? 'auto' : 'none'
-          }}
-          gl={{
-            powerPreference: 'high-performance',
-            precision: config.precision,
-            antialias: config.antialias,
-            alpha: true,
-            toneMapping: THREE.ACESFilmicToneMapping,
-          }}
-          onCreated={onCanvasCreated}
-        >
-          {/* 30fps cap for LOW tier */}
-          {config.frameCapMs && <FrameCapController frameCapMs={config.frameCapMs} />}
-
-          {/* FPS Watchdog */}
-          <FPSWatchdogInner reportFPS={reportFPS} fpsBuffer={fpsBuffer} />
-
-          <PerformanceMonitor
-            onDecline={() => setPerfDown(true)}
-            onIncline={() => setPerfDown(false)}
-          >
-            <Atmosphere isMobile={isMobile} perfDown={perfDown} tier={tier} config={config} />
-            <Suspense fallback={<BrainLoader />}>
-            <CyberBrain activeRegionId={activeRegion} tier={tier} config={config} isMobile={isMobile} />
-            </Suspense>
-          </PerformanceMonitor>
-        </Canvas>
       </div>
-    </>
+
+      {/* Corporate Label Bottom Right */}
+      <div className="absolute bottom-12 right-12 z-20 font-mono text-red-600/30 text-[10px] text-right hidden lg:block">
+        ARASAKA_TECH_SYSTEMS_DIVISION<br />
+        ENCRYPTED_ENVELOPE_V7.22<br />
+        SECURITY_LEVEL_A+
+      </div>
+
+      {/* Buttons Panel */}
+      <div className="absolute bottom-12 left-0 right-0 z-40 flex justify-center flex-wrap gap-4 px-6">
+        {Object.values(REGIONS).map(r => (
+          <button
+            key={r.id}
+            id={`btn-${r.id}`}
+            onClick={() => handleToggle(r.id)}
+            onMouseEnter={playHover}
+            className={`group relative px-8 py-4 font-mono text-[11px] uppercase tracking-[0.3em] font-black transition-all duration-300 ${activeId === r.id
+              ? 'bg-red-600 text-black shadow-[0_0_40px_#ff2a42]'
+              : 'bg-black/80 text-red-600 border border-red-600/40 hover:border-white hover:text-white'
+              }`}
+            style={{ clipPath: 'polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px)' }}
+          >
+            {/* Hover Glitch Effect */}
+            <div className="absolute inset-0 bg-red-600 opacity-0 group-hover:animate-pulse transition-opacity pointer-events-none" style={{ mixBlendingMode: 'overlay' }} />
+            <span className="relative z-10">[{r.id}]</span>
+            {activeId === r.id && (
+              <div className="absolute bottom-0 left-0 h-1 bg-white animate-pulse" style={{ width: '100%' }} />
+            )}
+          </button>
+        ))}
+      </div>
+
+      <Canvas
+        camera={{ position: [0, 1.2, 5.5], fov: 45 }}
+        style={{ zIndex: 10, position: 'absolute', inset: 0 }}
+        gl={{ alpha: true, antialias: true }}
+        onCreated={onCanvasCreated}
+      >
+        <PerformanceMonitor>
+          <ambientLight intensity={1.2} />
+          <Suspense fallback={null}>
+            <CyberBrain activeId={activeId} onNodesUpdate={setNodesData} onNodeClick={handleToggle} />
+          </Suspense>
+        </PerformanceMonitor>
+      </Canvas>
+    </div>
   );
 }
 
-// Inner FPS watchdog — lives inside Canvas context
-function FPSWatchdogInner({ reportFPS, fpsBuffer }) {
-  useFrame((_, delta) => {
-    const fps = 1 / delta;
-    fpsBuffer.current.push(fps);
-    if (fpsBuffer.current.length > 30) fpsBuffer.current.shift();
-    const avg = fpsBuffer.current.reduce((a, b) => a + b, 0) / fpsBuffer.current.length;
-    reportFPS(avg);
-  });
-  return null;
-}
-
-// Preload with Draco decoder
 useGLTF.preload('/brain.glb', true);
