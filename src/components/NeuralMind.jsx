@@ -417,7 +417,7 @@ function SVGOverlay({ activeId, nodesData, cardAnchor }) {
 }
 
 // ─── HUD Skill Card (Arasaka Corporation Card) ──────────────────────────────
-function HUDCard({ activeId, onAnchorUpdate, isMobile }) {
+function HUDCard({ activeId, onAnchorUpdate, isMobile, isLaptop }) {
   const cardRef = useRef();
   const node = REGIONS[activeId];
 
@@ -426,7 +426,7 @@ function HUDCard({ activeId, onAnchorUpdate, isMobile }) {
       if (cardRef.current && node) {
         const rect = cardRef.current.getBoundingClientRect();
         const pRect = cardRef.current.parentElement.getBoundingClientRect();
-        // Adjust anchor points for mobile centering
+        // Adjust anchor points for different screen tiers
         const x = isMobile 
           ? pRect.width / 2 
           : (node.side === 'right' ? (rect.left - pRect.left) : (rect.right - pRect.left));
@@ -439,7 +439,7 @@ function HUDCard({ activeId, onAnchorUpdate, isMobile }) {
     if (cardRef.current) obs.observe(cardRef.current);
     window.addEventListener('resize', update);
     return () => { obs.disconnect(); window.removeEventListener('resize', update); };
-  }, [activeId, node, onAnchorUpdate, isMobile]);
+  }, [activeId, node, onAnchorUpdate, isMobile, isLaptop]);
 
   if (!node) return null;
   const isRight = node.side === 'right';
@@ -450,7 +450,9 @@ function HUDCard({ activeId, onAnchorUpdate, isMobile }) {
       className={`absolute z-50 transition-all duration-500 p-0
         ${isMobile 
           ? 'top-[15%] left-1/2 -translate-x-1/2 w-[88%]' 
-          : `top-1/2 -translate-y-1/2 ${isRight ? 'right-16' : 'left-16'} w-64`
+          : (isLaptop 
+              ? `top-1/2 -translate-y-1/2 ${isRight ? 'right-6' : 'left-6'} w-64 scale-[0.85]` 
+              : `top-1/2 -translate-y-1/2 ${isRight ? 'right-16' : 'left-16'} w-64`)
         }`}
       style={{
         boxShadow: `0 0 40px ${T.arasakaRed}11`,
@@ -539,10 +541,15 @@ export default function NeuralMind() {
   const [nodesData, setNodesData] = useState({});
   const [cardAnchor, setCardAnchor] = useState(null);
   const { playClick, playHover, playRot } = useCyberAudio();
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 1024);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [isLaptop, setIsLaptop] = useState(window.innerWidth >= 768 && window.innerWidth < 1536);
 
   useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 1024);
+    const check = () => {
+      const w = window.innerWidth;
+      setIsMobile(w < 768);
+      setIsLaptop(w >= 768 && w < 1536);
+    };
     window.addEventListener('resize', check);
     return () => window.removeEventListener('resize', check);
   }, []);
@@ -556,9 +563,15 @@ export default function NeuralMind() {
     }
   };
 
+  const getContainerHeight = () => {
+    if (isMobile) return '650px';
+    if (isLaptop) return '750px';
+    return '900px';
+  };
+
   return (
     <div className="relative w-full overflow-hidden bg-black transition-all duration-500" 
-      style={{ height: isMobile ? '650px' : '900px' }}>
+      style={{ height: getContainerHeight() }}>
       <MatrixRain />
 
       {/* Scanline & Vignette Overlay */}
@@ -566,15 +579,15 @@ export default function NeuralMind() {
         style={{ background: 'repeating-linear-gradient(0deg, transparent, transparent 2px, #000 2px, #000 4px), radial-gradient(circle, transparent 30%, #000 100%)' }} />
 
       <SVGOverlay activeId={activeId} nodesData={nodesData} cardAnchor={cardAnchor} />
-      <HUDCard activeId={activeId} onAnchorUpdate={setCardAnchor} isMobile={isMobile} />
+      <HUDCard activeId={activeId} onAnchorUpdate={setCardAnchor} isMobile={isMobile} isLaptop={isLaptop} />
 
       {/* Header HUD */}
       <div className={`absolute z-20 font-mono text-red-600 transition-all duration-500
-        ${isMobile ? 'top-6 left-6' : 'top-12 left-12'}`}>
+        ${isMobile ? 'top-6 left-6' : (isLaptop ? 'top-8 left-8' : 'top-12 left-12')}`}>
         <div className={`font-black tracking-tighter uppercase italic leading-none
-          ${isMobile ? 'text-xl' : 'text-3xl'}`}>Neural_Engram_Core</div>
+          ${isMobile ? 'text-xl' : (isLaptop ? 'text-2xl' : 'text-3xl')}`}>Neural_Engram_Core</div>
         <div className={`font-bold mt-2 flex items-center gap-2
-          ${isMobile ? 'text-[9px]' : 'text-[12px]'}`}>
+          ${isMobile ? 'text-[9px]' : (isLaptop ? 'text-[10px]' : 'text-[12px]')}`}>
           <span className={`${isMobile ? 'w-3' : 'w-5'} h-[2px] bg-red-600 animate-pulse`} />
           {activeId ? (
             <span className="text-white">STATUS: TARGET_LOCKED [ {activeId} ]</span>
@@ -593,7 +606,7 @@ export default function NeuralMind() {
 
       {/* Buttons Panel */}
       <div className={`absolute left-0 right-0 z-40 flex justify-center flex-wrap gap-2 md:gap-4 px-6 transition-all duration-500
-        ${isMobile ? 'bottom-6' : 'bottom-12'}`}>
+        ${isMobile ? 'bottom-6' : (isLaptop ? 'bottom-8' : 'bottom-12')}`}>
         {Object.values(REGIONS).map(r => (
           <button
             key={r.id}
@@ -601,7 +614,9 @@ export default function NeuralMind() {
             onClick={() => handleToggle(r.id)}
             onMouseEnter={playHover}
             className={`group relative font-mono uppercase font-black transition-all duration-300
-              ${isMobile ? 'px-4 py-2 text-[9px] tracking-[0.2em]' : 'px-8 py-4 text-[11px] tracking-[0.3em]'}
+              ${isMobile 
+                ? 'px-4 py-2 text-[9px] tracking-[0.2em]' 
+                : (isLaptop ? 'px-6 py-3 text-[10px] tracking-[0.25em]' : 'px-8 py-4 text-[11px] tracking-[0.3em]')}
               ${activeId === r.id
                 ? 'bg-red-600 text-black shadow-[0_0_40px_#ff2a42]'
                 : 'bg-black/80 text-red-600 border border-red-600/40 hover:border-white hover:text-white'
@@ -609,7 +624,7 @@ export default function NeuralMind() {
             style={{ 
               clipPath: isMobile 
                 ? 'polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px)'
-                : 'polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px)' 
+                : (isLaptop ? 'polygon(12px 0, 100% 0, 100% calc(100% - 12px), calc(100% - 12px) 100%, 0 100%, 0 12px)' : 'polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px)')
             }}
           >
             {/* Hover Glitch Effect */}
@@ -631,7 +646,7 @@ export default function NeuralMind() {
         <PerformanceMonitor>
           <ambientLight intensity={1.2} />
           <Suspense fallback={null}>
-            <group scale={isMobile ? 0.45 : 1} position={[0, isMobile ? 0.2 : 0, 0]}>
+            <group scale={isMobile ? 0.45 : (isLaptop ? 0.75 : 1)} position={[0, isMobile ? 0.2 : (isLaptop ? 0.1 : 0), 0]}>
               <CyberBrain activeId={activeId} onNodesUpdate={setNodesData} onNodeClick={handleToggle} />
             </group>
           </Suspense>

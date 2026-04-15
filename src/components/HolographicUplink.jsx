@@ -94,7 +94,8 @@ function useGlobeTexture(texSize) {
         const path = geoPath().projection(projection).context(context);
 
         context.strokeStyle = '#00F0FF';
-        context.lineWidth = texSize > 1024 ? 2.5 : 1.5;
+        // Thinner lines for mobile resolution to prevent blur
+        context.lineWidth = texSize > 1024 ? 2.5 : (texSize > 512 ? 1.5 : 0.8);
         context.fillStyle = '#0a0a0a';
 
         worldGeoJson.features.forEach(feature => {
@@ -108,7 +109,8 @@ function useGlobeTexture(texSize) {
 
         if (indiaGeoJson) {
           context.strokeStyle = '#00F0FF';
-          context.lineWidth = texSize > 1024 ? 4.0 : 2.0;
+          // Thinner lines for mobile resolution to prevent blur in internal states
+          context.lineWidth = texSize > 1024 ? 4.0 : (texSize > 512 ? 2.0 : 1.2);
           context.fillStyle = '#0a0a0a';
           indiaGeoJson.features.forEach(feature => {
             context.beginPath(); path(feature); context.fill(); context.stroke();

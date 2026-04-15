@@ -435,11 +435,14 @@ export default function Home() {
     const smoothProgress = useSpring(globeScroll, { stiffness: 60, damping: 22, mass: 1 });
 
     // Mobile detect logic
-    const [isMobile, setIsMobile] = useState(false);
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+    const [isLaptop, setIsLaptop] = useState(window.innerWidth >= 768 && window.innerWidth < 1536);
 
     useEffect(() => {
         const checkScreenSize = () => {
-            setIsMobile(window.innerWidth < 768);
+            const w = window.innerWidth;
+            setIsMobile(w < 768);
+            setIsLaptop(w >= 768 && w < 1536);
         };
         checkScreenSize();
         window.addEventListener('resize', checkScreenSize);
@@ -573,7 +576,8 @@ export default function Home() {
                                 variants={glitchContainer}
                                 initial="hidden"
                                 animate="show"
-                                className="relative z-10 flex flex-col md:flex-row items-center justify-start md:justify-center w-full min-h-full px-6 md:px-16 gap-8 md:gap-12 pt-10 pb-20 md:py-0"
+                                className={`relative z-10 flex flex-col items-center justify-start md:justify-center w-full min-h-full px-6 md:px-16 pt-10 pb-20 md:py-0 transition-all duration-500
+                                    ${isMobile ? 'gap-8' : (isLaptop ? 'xl:flex-row gap-10' : 'md:flex-row gap-12')}`}
                             >
                                 {/* ── LEFT: Typography ── */}
                                 <div className="flex-1 flex flex-col items-center text-center md:items-start md:text-left gap-4 md:gap-6 w-full">
@@ -592,7 +596,8 @@ export default function Home() {
                                     {/* Name */}
                                     <motion.h1
                                         variants={glitchItem}
-                                        className="text-4xl sm:text-5xl md:text-7xl font-black uppercase leading-none m-0 break-words w-full"
+                                        className={`font-black uppercase leading-none m-0 break-words w-full transition-all duration-500
+                                            ${isMobile ? 'text-4xl sm:text-5xl' : (isLaptop ? 'text-5xl lg:text-6xl' : 'text-7xl')}`}
                                         style={{
                                             fontFamily: "var(--font-cyberpunk, 'Orbitron', 'Tektur', sans-serif)",
                                             color: COLORS.yellow,
@@ -648,8 +653,9 @@ export default function Home() {
                                     </motion.div>
                                 </div>
 
-                                {/* ── RIGHT: Terminal Bio ── */}
-                                <motion.div variants={glitchItem} className="flex-shrink-0 w-full lg:flex-1 max-w-lg lg:max-w-xl xl:max-w-2xl">
+                                 {/* ── RIGHT: Terminal Bio ── */}
+                                 <motion.div variants={glitchItem} className={`flex-shrink-0 w-full lg:max-w-xl xl:max-w-2xl transition-all duration-500
+                                     ${isLaptop ? 'xl:flex-1' : 'lg:flex-1'}`}>
                                     <div
                                         className="relative overflow-hidden p-6 md:p-8 text-xs sm:text-sm font-mono leading-relaxed text-gray-300"
                                         style={{
