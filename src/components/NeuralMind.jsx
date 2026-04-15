@@ -417,7 +417,7 @@ function SVGOverlay({ activeId, nodesData, cardAnchor }) {
 }
 
 // ─── HUD Skill Card (Arasaka Corporation Card) ──────────────────────────────
-function HUDCard({ activeId, onAnchorUpdate }) {
+function HUDCard({ activeId, onAnchorUpdate, isMobile }) {
   const cardRef = useRef();
   const node = REGIONS[activeId];
 
@@ -426,7 +426,10 @@ function HUDCard({ activeId, onAnchorUpdate }) {
       if (cardRef.current && node) {
         const rect = cardRef.current.getBoundingClientRect();
         const pRect = cardRef.current.parentElement.getBoundingClientRect();
-        const x = node.side === 'right' ? (rect.left - pRect.left) : (rect.right - pRect.left);
+        // Adjust anchor points for mobile centering
+        const x = isMobile 
+          ? pRect.width / 2 
+          : (node.side === 'right' ? (rect.left - pRect.left) : (rect.right - pRect.left));
         const y = (rect.top - pRect.top) + rect.height / 2;
         onAnchorUpdate({ x, y });
       }
@@ -436,7 +439,7 @@ function HUDCard({ activeId, onAnchorUpdate }) {
     if (cardRef.current) obs.observe(cardRef.current);
     window.addEventListener('resize', update);
     return () => { obs.disconnect(); window.removeEventListener('resize', update); };
-  }, [activeId, node, onAnchorUpdate]);
+  }, [activeId, node, onAnchorUpdate, isMobile]);
 
   if (!node) return null;
   const isRight = node.side === 'right';
@@ -444,10 +447,16 @@ function HUDCard({ activeId, onAnchorUpdate }) {
   return (
     <div
       ref={cardRef}
-      className={`absolute top-1/2 -translate-y-1/2 ${isRight ? 'right-16' : 'left-16'} z-50 w-64 p-0 transition-all duration-500`}
+      className={`absolute z-50 transition-all duration-500 p-0
+        ${isMobile 
+          ? 'top-[15%] left-1/2 -translate-x-1/2 w-[88%]' 
+          : `top-1/2 -translate-y-1/2 ${isRight ? 'right-16' : 'left-16'} w-64`
+        }`}
       style={{
         boxShadow: `0 0 40px ${T.arasakaRed}11`,
-        animation: `cardEnter${isRight ? 'Right' : 'Left'} 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards`
+        animation: isMobile 
+          ? 'cardEnterMobile 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards'
+          : `cardEnter${isRight ? 'Right' : 'Left'} 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards`
       }}
     >
       {/* Top Header Bar */}
@@ -514,6 +523,10 @@ function HUDCard({ activeId, onAnchorUpdate }) {
           from { transform: translate(-100px, -50%); opacity: 0; filter: blur(10px); } 
           to { transform: translate(0, -50%); opacity: 1; filter: blur(0); } 
         }
+        @keyframes cardEnterMobile {
+          from { transform: translate(-50%, -20px); opacity: 0; filter: blur(10px); }
+          to { transform: translate(-50%, 0); opacity: 1; filter: blur(0); }
+        }
       `}</style>
     </div>
   );
@@ -544,7 +557,8 @@ export default function NeuralMind() {
   };
 
   return (
-    <div className="relative w-full overflow-hidden bg-black" style={{ height: isMobile ? '500px' : '900px' }}>
+    <div className="relative w-full overflow-hidden bg-black transition-all duration-500" 
+      style={{ height: isMobile ? '650px' : '900px' }}>
       <MatrixRain />
 
       {/* Scanline & Vignette Overlay */}
@@ -552,17 +566,20 @@ export default function NeuralMind() {
         style={{ background: 'repeating-linear-gradient(0deg, transparent, transparent 2px, #000 2px, #000 4px), radial-gradient(circle, transparent 30%, #000 100%)' }} />
 
       <SVGOverlay activeId={activeId} nodesData={nodesData} cardAnchor={cardAnchor} />
-      <HUDCard activeId={activeId} onAnchorUpdate={setCardAnchor} />
+      <HUDCard activeId={activeId} onAnchorUpdate={setCardAnchor} isMobile={isMobile} />
 
       {/* Header HUD */}
-      <div className="absolute top-12 left-12 z-20 font-mono text-red-600">
-        <div className="text-3xl font-black tracking-tighter uppercase italic leading-none">Neural_Engram_Core</div>
-        <div className="text-[12px] font-bold mt-3 flex items-center gap-3">
-          <span className="w-5 h-[3px] bg-red-600 animate-pulse" />
+      <div className={`absolute z-20 font-mono text-red-600 transition-all duration-500
+        ${isMobile ? 'top-6 left-6' : 'top-12 left-12'}`}>
+        <div className={`font-black tracking-tighter uppercase italic leading-none
+          ${isMobile ? 'text-xl' : 'text-3xl'}`}>Neural_Engram_Core</div>
+        <div className={`font-bold mt-2 flex items-center gap-2
+          ${isMobile ? 'text-[9px]' : 'text-[12px]'}`}>
+          <span className={`${isMobile ? 'w-3' : 'w-5'} h-[2px] bg-red-600 animate-pulse`} />
           {activeId ? (
             <span className="text-white">STATUS: TARGET_LOCKED [ {activeId} ]</span>
           ) : (
-            <span className="opacity-60">STATUS: GLOBAL_SEQUENTIAL_SCAN_ACTIVE</span>
+            <span className="opacity-60">STATUS: GLOBAL_SCAN_ACTIVE</span>
           )}
         </div>
       </div>
@@ -575,18 +592,25 @@ export default function NeuralMind() {
       </div>
 
       {/* Buttons Panel */}
-      <div className="absolute bottom-12 left-0 right-0 z-40 flex justify-center flex-wrap gap-4 px-6">
+      <div className={`absolute left-0 right-0 z-40 flex justify-center flex-wrap gap-2 md:gap-4 px-6 transition-all duration-500
+        ${isMobile ? 'bottom-6' : 'bottom-12'}`}>
         {Object.values(REGIONS).map(r => (
           <button
             key={r.id}
             id={`btn-${r.id}`}
             onClick={() => handleToggle(r.id)}
             onMouseEnter={playHover}
-            className={`group relative px-8 py-4 font-mono text-[11px] uppercase tracking-[0.3em] font-black transition-all duration-300 ${activeId === r.id
-              ? 'bg-red-600 text-black shadow-[0_0_40px_#ff2a42]'
-              : 'bg-black/80 text-red-600 border border-red-600/40 hover:border-white hover:text-white'
+            className={`group relative font-mono uppercase font-black transition-all duration-300
+              ${isMobile ? 'px-4 py-2 text-[9px] tracking-[0.2em]' : 'px-8 py-4 text-[11px] tracking-[0.3em]'}
+              ${activeId === r.id
+                ? 'bg-red-600 text-black shadow-[0_0_40px_#ff2a42]'
+                : 'bg-black/80 text-red-600 border border-red-600/40 hover:border-white hover:text-white'
               }`}
-            style={{ clipPath: 'polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px)' }}
+            style={{ 
+              clipPath: isMobile 
+                ? 'polygon(8px 0, 100% 0, 100% calc(100% - 8px), calc(100% - 8px) 100%, 0 100%, 0 8px)'
+                : 'polygon(15px 0, 100% 0, 100% calc(100% - 15px), calc(100% - 15px) 100%, 0 100%, 0 15px)' 
+            }}
           >
             {/* Hover Glitch Effect */}
             <div className="absolute inset-0 bg-red-600 opacity-0 group-hover:animate-pulse transition-opacity pointer-events-none" style={{ mixBlendingMode: 'overlay' }} />
