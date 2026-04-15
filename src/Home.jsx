@@ -664,9 +664,18 @@ export default function Home() {
                                             <div className="absolute bottom-0 right-0 w-px h-4" style={{ background: COLORS.red }} />
                                         </div>
 
-                                        <div className="text-xs uppercase tracking-widest mb-5 font-bold animate-pulse" style={{ color: COLORS.cyan }}>
-                                            [ TERMINAL_UPLINK ESTABLISHED ]
-                                        </div>
+                                        <div className="text-[10px] md:text-xs uppercase tracking-[0.3em] mb-5 font-bold animate-pulse" style={{ color: COLORS.cyan, paddingLeft: '20px' }}>
+                                            <a 
+                                                href="https://github.com/binoremohapatra" 
+                                                target="_blank" 
+                                                rel="noopener noreferrer"
+                                                onMouseEnter={playHover}
+                                                className="hover:text-white transition-colors cursor-pointer"
+                                                style={{ pointerEvents: 'auto' }}
+                                            >
+                                                [ TERMINAL_UPLINK ESTABLISHED ]
+                                            </a>
+                                         </div>
 
                                         <p className="mb-4">
                                             I'm a Full-Stack Developer currently in my 4th sem of B.Tech CSE, having shipped 5 production-grade projects.
@@ -679,6 +688,19 @@ export default function Home() {
                                         <p className="tracking-widest mt-6 text-[#FF8800] font-bold">
                                             &gt; Currently expanding my neural architecture by actively learning Python and experimenting with local LLMs (Ollama).
                                         </p>
+
+                                        <div className="mt-8 border-t border-[#FF003C]/30 pt-6">
+                                             <button 
+                                                 onClick={() => { playClick(); setIsClassified(true); }}
+                                                 onMouseEnter={playHover}
+                                                 className="group flex items-center gap-3 text-[10px] text-[#FF003C] font-mono hover:text-[#FCEE0A] transition-colors bg-transparent border-none p-0 cursor-pointer"
+                                                 style={{ pointerEvents: 'auto' }}
+                                             >
+                                                 <span className="w-2 h-2 bg-[#FF003C] group-hover:bg-[#FCEE0A] animate-pulse" />
+                                                 [ ACCESS_CLASSIFIED_USER_DATA ]
+                                                 <span className="opacity-0 group-hover:opacity-100 transition-opacity ml-2">→</span>
+                                             </button>
+                                         </div>
                                     </div>
                                 </motion.div>
                             </motion.div>

@@ -575,22 +575,62 @@ export default function HolographicUplink({ progressRef }) {
 
   const [isManual, setIsManual] = useState(false);
 
-  // Visitor IP geolocation
+  // Visitor IP geolocation with Fallback
   useEffect(() => {
-    fetch('https://ipapi.co/json/')
-      .then(res => res.json())
-      .then(data => {
-        if (data.latitude && data.longitude) {
-          setVisitorLoc({
-            id: 'visitor',
-            lat: data.latitude,
-            lon: data.longitude,
-            name: data.city ? `${data.city.toUpperCase()}_NODE` : 'UNKNOWN_NODE',
-          });
-          setUplinkDistance(haversineKm(data.latitude, data.longitude, HOST_LOC.lat, HOST_LOC.lon));
+    let active = true;
+
+    const fetchGeo = async () => {
+      // First Attempt: ipapi.co
+      try {
+        const res = await fetch('https://ipapi.co/json/');
+        const data = await res.json();
+        if (active && data.latitude && data.longitude) {
+          applyGeoData(data);
+          return;
         }
-      })
-      .catch(() => console.warn('Visitor geolocation unavailable.'));
+      } catch (e) {
+        console.warn('Primary Geo-API failed, trying fallback...');
+      }
+
+      // Fallback Attempt: ip-api.com
+      try {
+        const res = await fetch('http://ip-api.com/json/'); // Note: http might fail on https, but some allow it
+        const data = await res.json();
+        if (active && data.lat && data.lon) {
+          applyGeoData({
+            latitude: data.lat,
+            longitude: data.lon,
+            city: data.city
+          });
+          return;
+        }
+      } catch (e) {
+        console.warn('Fallback Geo-API failed.');
+      }
+
+      // Final Placeholder: Ensure UI remains present
+      if (active) {
+        setVisitorLoc({
+          id: 'visitor',
+          lat: 0,
+          lon: 0,
+          name: 'GHOST_NODE',
+        });
+      }
+    };
+
+    const applyGeoData = (data) => {
+      setVisitorLoc({
+        id: 'visitor',
+        lat: data.latitude,
+        lon: data.longitude,
+        name: data.city ? `${data.city.toUpperCase()}_NODE` : 'UNKNOWN_NODE',
+      });
+      setUplinkDistance(haversineKm(data.latitude, data.longitude, HOST_LOC.lat, HOST_LOC.lon));
+    };
+
+    fetchGeo();
+    return () => { active = false; };
   }, []);
 
   // Merge PerformanceMonitor downgrades with tier config
