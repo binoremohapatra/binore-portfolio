@@ -447,17 +447,17 @@ function HUDCard({ activeId, onAnchorUpdate, isMobile, isLaptop }) {
   return (
     <div
       ref={cardRef}
-      className={`absolute z-50 transition-all duration-500 p-0 transform-gpu
+      className={`absolute z-50 transition-all duration-500 p-0 transform-gpu origin-center
         ${isMobile 
-          ? 'bottom-[20%] left-1/2 -translate-x-1/2 w-[80%] scale-[0.82]' 
+          ? 'bottom-[22%] left-1/2 -translate-x-1/2 w-[220px] scale-[0.7]' 
           : (isLaptop 
               ? `top-1/2 -translate-y-1/2 ${isRight ? 'right-6' : 'left-6'} w-64 scale-[0.85]` 
               : `top-1/2 -translate-y-1/2 ${isRight ? 'right-16' : 'left-16'} w-64`)
         }`}
       style={{
-        boxShadow: `0 0 40px ${T.arasakaRed}11`,
+        boxShadow: `0 0 30px ${T.arasakaRed}22`,
         animation: isMobile 
-          ? 'cardEnterMobile 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards'
+          ? 'cardEnterMobile 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards'
           : `cardEnter${isRight ? 'Right' : 'Left'} 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards`
       }}
     >
@@ -476,16 +476,16 @@ function HUDCard({ activeId, onAnchorUpdate, isMobile, isLaptop }) {
         style={{ border: `1px solid ${T.arasakaRed}33`, borderLeft: `4px solid ${T.arasakaRed}` }}>
         <div className="flex justify-between items-start mb-3">
           <div>
-            <div className="text-[7px] font-mono tracking-[3px] opacity-40 mb-1" style={{ color: T.white }}>// ENGRAM</div>
-            <h2 className={`${isMobile ? 'text-xl' : 'text-2xl'} font-black uppercase italic leading-none`} style={{ fontFamily: '"Orbitron"', color: '#fff' }}>{node.label}</h2>
+            <div className="text-[6px] font-mono tracking-[2px] opacity-40 mb-1" style={{ color: T.white }}>// ENGRAM</div>
+            <h2 className={`${isMobile ? 'text-sm' : 'text-2xl'} font-black uppercase italic leading-none`} style={{ fontFamily: '"Orbitron"', color: '#fff' }}>{node.label}</h2>
           </div>
-          <div className="text-[8px] font-mono text-right opacity-30" style={{ color: T.white }}>
+          <div className="text-[6px] font-mono text-right opacity-30" style={{ color: T.white }}>
             ASN-{Math.floor(Math.random() * 899 + 100)}<br />
             SEC-07
           </div>
         </div>
 
-        <div className="text-[10px] font-mono mb-5 p-1 bg-red-600/10 w-fit" style={{ color: T.neonOrange }}>
+        <div className={`${isMobile ? 'text-[7px]' : 'text-[10px]'} font-mono mb-3 p-1 bg-red-600/10 w-fit`} style={{ color: T.neonOrange }}>
           &gt; {node.sub}
         </div>
 
@@ -495,17 +495,17 @@ function HUDCard({ activeId, onAnchorUpdate, isMobile, isLaptop }) {
               <span style={{ color: '#888' }}>Synaptic_Load</span>
               <span style={{ color: T.neonOrange }}>{node.value}%</span>
             </div>
-            <div className="h-2 bg-red-950/20 relative" style={{ outline: '1px solid rgba(255,255,255,0.05)' }}>
-              <div className="h-full transition-all duration-2000 ease-in-out" style={{ width: `${node.value}%`, background: T.arasakaRed, boxShadow: `0 0 15px ${T.arasakaRed}88` }} />
+            <div className={`h-1.5 ${isMobile ? 'scale-x-[0.8]' : ''} bg-red-950/20 relative origin-left`} style={{ outline: '1px solid rgba(255,255,255,0.05)' }}>
+              <div className="h-full transition-all duration-2000 ease-in-out" style={{ width: `${node.value}%`, background: T.arasakaRed, boxShadow: `0 0 10px ${T.arasakaRed}88` }} />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 text-[8px] font-mono" style={{ color: T.arasakaRed }}>
-            <div className="bg-white/5 p-1.5">
+          <div className={`grid grid-cols-2 gap-2 ${isMobile ? 'text-[6px]' : 'text-[8px]'} font-mono`} style={{ color: T.arasakaRed }}>
+            <div className="bg-white/5 p-1">
               <span className="opacity-40">INTEGRITY:</span> 1.0<br />
               <span className="opacity-40">LATENCY:</span> 0.0ms
             </div>
-            <div className="bg-white/5 p-1.5">
+            <div className="bg-white/5 p-1">
               <span className="opacity-40">BUFFER:</span> 100%<br />
               <span className="opacity-40">STREAM:</span> OK
             </div>
