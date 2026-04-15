@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 
 const SoundContext = createContext();
 
@@ -10,30 +10,23 @@ const clickSfx = new Audio('/click.mp3');
 const bootSfx = new Audio('/glitch.mp3');
 const alertSfx = new Audio('/alert.mp3');
 const bgmSfx = new Audio('/i-really-want-to-stay-at-your-house.mp3');
-// Fallback for NeuralMind rotation since it wasn't requested for change
 const rotSfx = new Audio('/hover.mp3'); 
-
-// 2. The Rebel Path dynamic drop
 const rebelAudio = new Audio('/the-rebel-path.mp3');
-
-// 3. Classified theme
 const classifiedAudio = new Audio('/theme.mp3');
-classifiedAudio.loop = true;
-classifiedAudio.volume = 0.3;
 
-// Base Configurations
-bgmSfx.loop = true;
+// Initial setup
+[bgmSfx, rebelAudio, classifiedAudio].forEach(audio => {
+    audio.loop = true;
+});
 bgmSfx.volume = 0.15;
-
-rebelAudio.loop = true;
 rebelAudio.volume = 0.25;
+classifiedAudio.volume = 0.3;
 
 export const SoundProvider = ({ children }) => {
     const bgmStarted = useRef(false);
     const isRebelActive = useRef(false);
     const isClassifiedActive = useRef(false);
 
-    // Attempt to load from localStorage so choice persists across reloads
     const [isMuted, setIsMuted] = useState(() => {
         try {
             const saved = window.localStorage.getItem('cyberpunk_muted');
@@ -43,7 +36,6 @@ export const SoundProvider = ({ children }) => {
         }
     });
 
-    // Handle global Mute/Unmute BGM toggle logic
     useEffect(() => {
         try {
             window.localStorage.setItem('cyberpunk_muted', JSON.stringify(isMuted));
@@ -53,175 +45,120 @@ export const SoundProvider = ({ children }) => {
             bgmSfx.pause();
             rebelAudio.pause();
             classifiedAudio.pause();
-        } else {
-            // Only resume if the user actually officially started the BGM before toggling mute
-            if (bgmStarted.current) {
-                const handlePlay = (audio, label) => {
-                    audio.play().catch(e => {
-                        if (e.name === 'NotAllowedError') {
-                            console.log(`[SoundContext] ${label} playback deferred until interaction.`);
-                        } else {
-                            console.warn(`[SoundContext] ${label} playback failed:`, e);
-                        }
-                    });
-                };
-
-                if (isClassifiedActive.current) {
-                    handlePlay(classifiedAudio, "Classified BGM");
-                } else if (isRebelActive.current) {
-                    handlePlay(rebelAudio, "Rebel BGM");
-                } else {
-                    handlePlay(bgmSfx, "BGM");
-                }
-            }
+        } else if (bgmStarted.current) {
+            const playCurrent = () => {
+                if (isClassifiedActive.current) classifiedAudio.play().catch(() => {});
+                else if (isRebelActive.current) rebelAudio.play().catch(() => {});
+                else bgmSfx.play().catch(() => {});
+            };
+            playCurrent();
         }
     }, [isMuted]);
 
-    // ─── NEW: Page Visibility Logic ──────────────────────────────────────────
-    // Automatically pauses music when the tab is hidden (browser minimized / tab switched)
+    // Visibility management
     useEffect(() => {
         const handleVisibilityChange = () => {
             if (document.hidden) {
-                // Instantly pause everything
                 bgmSfx.pause();
                 rebelAudio.pause();
                 classifiedAudio.pause();
-            } else {
-                // Resume ONLY if the user hasn't muted and the music was already started
-                if (!isMuted && bgmStarted.current) {
-                    const handlePlay = (audio, label) => {
-                        audio.play().catch(e => {
-                            if (e.name === 'NotAllowedError') {
-                                console.log(`[SoundContext] ${label} visibility resume deferred.`);
-                            } else {
-                                console.warn(`[SoundContext] Visibility resume fail (${label}):`, e);
-                            }
-                        });
-                    };
-
-                    if (isClassifiedActive.current) {
-                        handlePlay(classifiedAudio, "Classified");
-                    } else if (isRebelActive.current) {
-                        handlePlay(rebelAudio, "Rebel");
-                    } else {
-                        handlePlay(bgmSfx, "BGM");
-                    }
-                }
+            } else if (!isMuted && bgmStarted.current) {
+                if (isClassifiedActive.current) classifiedAudio.play().catch(() => {});
+                else if (isRebelActive.current) rebelAudio.play().catch(() => {});
+                else bgmSfx.play().catch(() => {});
             }
         };
 
         document.addEventListener('visibilitychange', handleVisibilityChange);
         return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-    }, [isMuted]); // Re-bind if mute state changes to ensure logic captures latest state
+    }, [isMuted]);
 
+    // Robust Looping fallback
+    useEffect(() => {
+        const setLoop = (audio) => {
+            audio.onended = () => {
+                if (!isMuted && bgmStarted.current) {
+                    audio.currentTime = 0;
+                    audio.play().catch(() => {});
+                }
+            };
+        };
+        setLoop(bgmSfx);
+        setLoop(rebelAudio);
+        setLoop(classifiedAudio);
+    }, [isMuted]);
 
-    const toggleMute = () => setIsMuted(prev => !prev);
+    const toggleMute = useCallback(() => setIsMuted(prev => !prev), []);
 
-    // Overlapping SFX Logic
-    const playHover = () => {
+    const playHover = useCallback(() => {
         if (isMuted) return;
         hoverSfx.currentTime = 0;
-        hoverSfx.volume = 1.0;
-        hoverSfx.play().catch(e => console.warn(e));
-    };
+        hoverSfx.play().catch(() => {});
+    }, [isMuted]);
 
-    const playClick = () => {
+    const playClick = useCallback(() => {
         if (isMuted) return;
         clickSfx.currentTime = 0;
-        clickSfx.volume = 1.0;
-        clickSfx.play().catch(e => console.warn(e));
-    };
+        clickSfx.play().catch(() => {});
+    }, [isMuted]);
 
-    const playBoot = () => {
+    const playBoot = useCallback(() => {
         if (isMuted) return;
         bootSfx.currentTime = 0;
-        bootSfx.volume = 1.0;
-        bootSfx.play().catch(e => console.warn(e));
-    };
+        bootSfx.play().catch(() => {});
+    }, [isMuted]);
 
-    const stopBoot = () => {
+    const stopBoot = useCallback(() => {
         bootSfx.pause();
         bootSfx.currentTime = 0;
-    };
+    }, []);
 
-    const playAlert = () => {
+    const playAlert = useCallback(() => {
         if (isMuted) return;
         alertSfx.currentTime = 0;
-        alertSfx.volume = 0.8;
-        alertSfx.play().catch(e => console.warn(e));
-    };
+        alertSfx.play().catch(() => {});
+    }, [isMuted]);
 
-    const playRot = () => {
+    const playRot = useCallback(() => {
         if (isMuted) return;
         rotSfx.currentTime = 0;
-        rotSfx.volume = 0.5;
-        rotSfx.play().catch(e => console.warn(e));
-    };
+        rotSfx.play().catch(() => {});
+    }, [isMuted]);
 
-    const playBGM = () => {
+    const playBGM = useCallback(() => {
         bgmStarted.current = true;
-        if (isMuted) return;
-        bgmSfx.play().catch(e => {
-            if (e.name !== 'NotAllowedError') console.warn(e);
-        });
-    };
+        if (!isMuted) bgmSfx.play().catch(() => {});
+    }, [isMuted]);
 
-    const triggerRebelPath = () => {
-        // Halt any existing BGM
+    const triggerRebelPath = useCallback(() => {
         bgmSfx.pause();
         bgmSfx.currentTime = 0;
-
-        // Switch active flag to Rebel Path
         isRebelActive.current = true;
-        bgmStarted.current = true; // Safety in case Boot Sequence was skipped
+        bgmStarted.current = true;
+        if (!isMuted && rebelAudio.paused) rebelAudio.play().catch(() => {});
+    }, [isMuted]);
 
-        if (isMuted) return;
-        rebelAudio.play().catch(e => {
-            if (e.name !== 'NotAllowedError') console.warn("Rebel Path trigger failed:", e);
-        });
-    };
-
-    const triggerClassifiedMusic = () => {
-        // Halt all other BGM
+    const triggerClassifiedMusic = useCallback(() => {
         bgmSfx.pause();
         rebelAudio.pause();
-        bgmSfx.currentTime = 0;
-        rebelAudio.currentTime = 0;
-
-        isRebelActive.current = false;
         isClassifiedActive.current = true;
+        isRebelActive.current = false;
         bgmStarted.current = true;
+        if (!isMuted) classifiedAudio.play().catch(() => {});
+    }, [isMuted]);
 
-        if (!isMuted) {
-            classifiedAudio.play().catch(e => console.warn("Classified Music trigger failed:", e));
-        }
-    };
-
-    const stopClassifiedMusic = () => {
+    const stopClassifiedMusic = useCallback(() => {
         classifiedAudio.pause();
         classifiedAudio.currentTime = 0;
         isClassifiedActive.current = false;
-        
-        // Resume rebel path since that's the default in Home
-        if (bgmStarted.current && !isMuted) {
-            triggerRebelPath();
-        }
-    };
+        if (bgmStarted.current && !isMuted) triggerRebelPath();
+    }, [isMuted, triggerRebelPath]);
 
     return (
         <SoundContext.Provider value={{
-            isMuted,
-            toggleMute,
-            playHover,
-            playClick,
-            playBoot,
-            stopBoot,
-            playAlert,
-            playRot,
-            playBGM,
-            triggerRebelPath,
-            triggerClassifiedMusic,
-            stopClassifiedMusic
+            isMuted, toggleMute, playHover, playClick, playBoot, stopBoot,
+            playAlert, playRot, playBGM, triggerRebelPath,
+            triggerClassifiedMusic, stopClassifiedMusic
         }}>
             {children}
         </SoundContext.Provider>
