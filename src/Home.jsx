@@ -649,7 +649,7 @@ export default function Home() {
                                 </div>
 
                                 {/* ── RIGHT: Terminal Bio ── */}
-                                <motion.div variants={glitchItem} className="flex-shrink-0 w-full md:w-[450px] max-w-lg lg:max-w-xl">
+                                <motion.div variants={glitchItem} className="flex-shrink-0 w-full lg:flex-1 max-w-lg lg:max-w-xl xl:max-w-2xl">
                                     <div
                                         className="relative overflow-hidden p-6 md:p-8 text-xs sm:text-sm font-mono leading-relaxed text-gray-300"
                                         style={{
