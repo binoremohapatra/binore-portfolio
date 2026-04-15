@@ -1,8 +1,21 @@
 {
-  "name": "vite-temp",
+  "name": "binore-portfolio",
   "private": true,
-  "version": "0.1.2",
+  "version": "1.0.0",
+  "description": "High-fidelity Cyberpunk 2077 inspired portfolio featuring 3D WebGL scenes and Arasaka-themed HUD.",
   "type": "module",
+  "keywords": [
+    "react",
+    "three.js",
+    "cyberpunk",
+    "portfolio",
+    "webgl",
+    "gsap",
+    "framer-motion",
+    "spring-boot",
+    "ai",
+    "geospatial"
+  ],
   "scripts": {
     "dev": "vite",
     "build": "vite build",
