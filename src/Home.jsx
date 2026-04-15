@@ -177,7 +177,7 @@ const PROJECTS = [
         type: 'E-COMMERCE PLATFORM',
         tags: ['Spring Boot', 'React', 'PostgreSQL'],
         desc: 'Full-stack shopping platform with Spring Boot REST APIs, React storefront, JWT authentication, and PostgreSQL. Built for real traffic and scale.',
-        accent: COLORS.cyan,
+        accent: COLORS.yellow,
     },
     {
         id: '02',
@@ -194,7 +194,7 @@ const PROJECTS = [
         type: 'LOCAL AI ASSISTANT',
         tags: ['Ollama', 'Python', 'Local LLM'],
         desc: 'A fully private, on-device AI assistant powered by Ollama. No cloud, no data leaks — runs entirely on local hardware.',
-        accent: COLORS.cyan,
+        accent: COLORS.red,
         experimental: true,
     },
     {
@@ -203,7 +203,7 @@ const PROJECTS = [
         type: 'GEOSPATIAL AI',
         tags: ['Geospatial AI', 'Flutter', 'PostgreSQL'],
         desc: 'Urban intelligence platform that fuses satellite data, ML models, and live sensor feeds into a real-time geospatial layer for smart city infrastructure.',
-        accent: COLORS.cyan,
+        accent: COLORS.yellow,
     },
     {
         id: '05',
@@ -211,7 +211,7 @@ const PROJECTS = [
         type: 'AI NAVIGATION & SAFETY',
         tags: ['Java', 'Spring Boot', 'Flutter', 'Geospatial'],
         desc: 'Flagship: AI-driven safety navigation system for Delhi. Fuses real-time crime data, geospatial intelligence, and live feeds into a route-safety engine.',
-        accent: COLORS.cyan,
+        accent: COLORS.red,
     },
     {
         id: '06',
@@ -800,7 +800,7 @@ export default function Home() {
                                     className="group relative cursor-pointer tactical-hover"
                                     style={{
                                         background: '#06090D',
-                                        border: `1px solid #1a1a1a`,
+                                        border: `1px solid ${p.accent}`,
                                         clipPath: 'polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px)',
                                         padding: '2.2rem',
                                     }}
